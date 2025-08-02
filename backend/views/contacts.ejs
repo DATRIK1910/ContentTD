@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar:hover {
+            background-color: #2d3748;
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        th {
+            background-color: #4a5568;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: #2d3748;
+        }
+
+        .delete-btn {
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100">
+    <!-- Sidebar -->
+    <div class="flex min-h-screen">
+        <div class="sidebar bg-gray-800 w-64 p-6 flex flex-col justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-8">Admin Panel</h2>
+                <nav>
+                    <a href="/admin"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+                    </a>
+                    <a href="/admin/users"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-users mr-3"></i> Quản lý Người dùng
+                    </a>
+                    <a href="/admin/contacts"
+                        class="flex items-center py-3 px-4 text-white bg-indigo-600 rounded-lg mb-2">
+                        <i class="fas fa-address-book mr-3"></i> Quản lý Liên hệ
+                    </a>
+                    <a href="/admin/content-manager"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <i class="fas fa-file-alt mr-3"></i> Quản lý Content
+                    </a>
+                    <a href="/admin/history"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <i class="fas fa-history mr-3"></i> Lịch sử hoạt động người dùng
+                    </a>
+                    <a href="/admin/pending-content"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <i class="fas fa-check-circle mr-3"></i> Xét duyệt nội dung
+                    </a>
+                    <a href="/admin/ratings"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <i class="fas fa-star mr-3"></i> Khảo sát độ hài lòng website
+                    </a>
+                    <a href="/admin/revenue"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <i class="fas fa-money-bill-wave mr-3"></i> Quản lý Doanh thu
+                    </a>
+                    <a href="/admin/user-rank"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-trophy mr-3"></i> Thứ bậc Người dùng
+                    </a>
+                </nav>
+            </div>
+            <div>
+                <a href="/"
+                    class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
+                    <i class="fas fa-sign-out-alt mr-3"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-gray-800 p-4 shadow-lg flex justify-between items-center">
+                <h1 class="text-xl font-semibold text-white">
+                    <%= title %>
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-300">Xin chào, Admin</span>
+                    <i class="fas fa-user-circle text-2xl text-gray-300"></i>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="p-6">
+                <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-4">Quản lý Liên hệ</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tên</th>
+                                    <th>Email</th>
+                                    <th>Nội dung</th>
+                                    <th>Thời gian</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% contacts.forEach(contact=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= contact.name %>
+                                        </td>
+                                        <td>
+                                            <%= contact.email %>
+                                        </td>
+                                        <td>
+                                            <%= contact.message %>
+                                        </td>
+                                        <td>
+                                            <%= new Date(contact.created_at).toLocaleString() %>
+                                        </td>
+                                        <td>
+                                            <form action="/admin/contacts/delete/<%= contact.id %>" method="POST"
+                                                onsubmit="return confirm('Bạn có chắc chắn muốn xóa liên hệ này?');">
+                                                <button type="submit"
+                                                    class="delete-btn bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700">
+                                                    <i class="fas fa-trash-alt mr-1"></i> Xóa
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% if (contacts.length===0) { %>
+                        <p class="text-gray-300 mt-4">Chưa có liên hệ nào.</p>
+                        <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
