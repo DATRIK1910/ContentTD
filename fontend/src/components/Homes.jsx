@@ -368,7 +368,7 @@ const Home = () => {
             {/* Section 5: Top 3 Khảo sát hàng đầu */}
             <section className="container mx-auto px-6 py-16">
                 <h2 className="text-4xl font-bold text-gray-800 mb-8 text-center">
-                    Top 3 Khảo sát hàng đầu
+                    Top Khảo sát hàng đầu
                 </h2>
                 <div className="w-16 h-1 bg-gradient-to-r from-blue-700 to-purple-300 mx-auto mb-8"></div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
