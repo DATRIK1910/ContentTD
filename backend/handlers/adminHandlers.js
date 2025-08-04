@@ -14,6 +14,7 @@ const adminDashboardHandler = (req, res) => {
     const contactQuery = "SELECT COUNT(*) as contactCount FROM contacts";
     const contentQuery = "SELECT COUNT(*) as articleCount FROM contents";
     const userQuery = "SELECT COUNT(*) as userCount FROM users";
+    const serviceStatsQuery = "SELECT category, COUNT(*) as usage_count FROM history GROUP BY category ORDER BY usage_count DESC";
 
     const queries = [
         new Promise((resolve, reject) => {
@@ -34,15 +35,22 @@ const adminDashboardHandler = (req, res) => {
                 else resolve(result[0].userCount);
             });
         }),
+        new Promise((resolve, reject) => {
+            db.query(serviceStatsQuery, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        }),
     ];
 
     Promise.all(queries)
-        .then(([contactCount, articleCount, userCount]) => {
+        .then(([contactCount, articleCount, userCount, serviceStats]) => {
             res.render("admin", {
                 title: "Admin Dashboard",
                 contactCount: contactCount || 0,
                 articleCount: articleCount || 0,
                 userCount: userCount || 0,
+                serviceStats: serviceStats || [],
             });
         })
         .catch((err) => {
