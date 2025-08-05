@@ -8,6 +8,7 @@ const Navbar = () => {
     const [user, setUser] = useState(null);
     const [isOpen, setIsOpen] = useState(false); // Trạng thái menu mobile
     const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false); // Trạng thái dropdown Công cụ
+    const [isHistoryDropdownOpen, setIsHistoryDropdownOpen] = useState(false); // Trạng thái dropdown Lịch sử
     const [diamonds, setDiamonds] = useState(0); // Thêm trạng thái cho kim cương
 
     useEffect(() => {
@@ -115,7 +116,6 @@ const Navbar = () => {
                                 <ScissorsIcon className="h-5 w-5 mr-2" />
                                 Tóm tắt văn bản
                             </li>
-
                             <li
                                 className="px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 cursor-pointer flex items-center"
                                 onClick={() => navigate("/rewrite-text")}
@@ -140,10 +140,46 @@ const Navbar = () => {
                         </ul>
                     </li>
                     <li
-                        className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
-                        onClick={() => navigate("/history")}
+                        className="relative group"
+                        onMouseEnter={() => setIsHistoryDropdownOpen(true)}
+                        onMouseLeave={() => setIsHistoryDropdownOpen(false)}
                     >
-                        Lịch sử
+                        <span className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 flex items-center">
+                            Lịch sử
+                            <svg
+                                className={`w-4 h-4 ml-1 transition-transform duration-300 ${isHistoryDropdownOpen ? "rotate-180" : ""}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                        </span>
+                        <ul
+                            className={`absolute left-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl transition-all duration-300 transform ${isHistoryDropdownOpen
+                                ? "opacity-100 visible translate-y-0"
+                                : "opacity-0 invisible translate-y-2"
+                                }`}
+                        >
+                            <li
+                                className="px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-t-lg cursor-pointer"
+                                onClick={() => navigate("/history")}
+                            >
+                                Lịch sử hoạt động
+                            </li>
+                            <li
+                                className="px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-b-lg cursor-pointer"
+                                onClick={() => navigate("/payment-history")}
+                            >
+                                Lịch sử thanh toán
+                            </li>
+                        </ul>
                     </li>
                     <li
                         className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
@@ -249,7 +285,6 @@ const Navbar = () => {
                                     <ScissorsIcon className="h-5 w-5 mr-2" />
                                     Tóm tắt văn bản
                                 </li>
-
                                 <li
                                     className="text-gray-600 hover:text-red-600 cursor-pointer flex items-center"
                                     onClick={() => {
@@ -282,14 +317,30 @@ const Navbar = () => {
                                 </li>
                             </ul>
                         </li>
-                        <li
-                            className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
-                            onClick={() => {
-                                navigate("/history");
-                                toggleMenu();
-                            }}
-                        >
-                            Lịch sử
+                        <li className="relative">
+                            <span className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300">
+                                Lịch sử
+                            </span>
+                            <ul className="mt-2 space-y-2 pl-4">
+                                <li
+                                    className="text-gray-600 hover:text-red-600 cursor-pointer"
+                                    onClick={() => {
+                                        navigate("/history");
+                                        toggleMenu();
+                                    }}
+                                >
+                                    Lịch sử hoạt động
+                                </li>
+                                <li
+                                    className="text-gray-600 hover:text-red-600 cursor-pointer"
+                                    onClick={() => {
+                                        navigate("/payment-history");
+                                        toggleMenu();
+                                    }}
+                                >
+                                    Lịch sử thanh toán
+                                </li>
+                            </ul>
                         </li>
                         <li
                             className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"

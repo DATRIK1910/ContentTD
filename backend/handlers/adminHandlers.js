@@ -444,6 +444,61 @@ const exportRevenueHandler = (req, res) => {
     }
 };
 
+// Hàm xử lý GET /admin/payment-management
+const adminPaymentManagementHandler = (req, res) => {
+    db.query("SELECT * FROM transactions WHERE status = 'pending' ORDER BY created_at DESC", (err, results) => {
+        if (err) {
+            console.error("Error fetching transactions:", err);
+            return res.status(500).send("Có lỗi xảy ra khi lấy dữ liệu giao dịch.");
+        }
+        res.render("payment-management", {
+            title: "Quản lý Thanh toán",
+            transactions: results
+        });
+    });
+};
+
+// Endpoint /admin/confirm-transaction (Xác nhận giao dịch từ admin)
+const adminConfirmTransactionHandler = (req, res) => {
+    const { transactionId } = req.body;
+    if (!transactionId) {
+        return res.status(400).json({ success: false, message: "Thiếu transactionId" });
+    }
+
+    db.query(
+        "SELECT user_id, diamonds FROM transactions WHERE transaction_id = ? AND status = 'pending'",
+        [transactionId],
+        (err, results) => {
+            if (err || results.length === 0) {
+                return res.status(404).json({ success: false, message: "Giao dịch không tồn tại hoặc đã xử lý" });
+            }
+            const { user_id, diamonds } = results[0];
+
+            db.query(
+                "UPDATE users SET diamonds = diamonds + ? WHERE id = ?",
+                [diamonds, user_id],
+                (err) => {
+                    if (err) {
+                        console.error("Database error in update diamonds:", err.message, err.stack);
+                        return res.status(500).json({ success: false, message: err.message });
+                    }
+                    db.query(
+                        "UPDATE transactions SET status = 'completed', created_at = NOW() WHERE transaction_id = ?",
+                        [transactionId],
+                        (err) => {
+                            if (err) {
+                                console.error("Database error in update transaction:", err.message, err.stack);
+                                return res.status(500).json({ success: false, message: err.message });
+                            }
+
+                        }
+                    );
+                }
+            );
+        }
+    );
+};
+
 module.exports = {
     loginAdminGetHandler,
     adminDashboardHandler,
@@ -459,5 +514,7 @@ module.exports = {
     adminRevenueHandler,
     adminRevenueMonthlyHandler,
     adminRevenueYearlyHandler,
-    exportRevenueHandler
+    exportRevenueHandler,
+    adminPaymentManagementHandler,
+    adminConfirmTransactionHandler
 };

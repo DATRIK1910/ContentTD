@@ -47,9 +47,24 @@
             background-color: #2d3748;
         }
 
-        .rank-icon {
-            color: #ffd700;
-            margin-right: 5px;
+        .confirm-btn {
+            transition: all 0.3s ease;
+            background-color: #10b981;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .confirm-btn:hover {
+            background-color: #059669;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -94,20 +109,22 @@
                         <i class="fas fa-money-bill-wave mr-3"></i> Quản lý Doanh thu
                     </a>
                     <a href="/admin/user-rank"
-                        class="flex items-center py-3 px-4 text-white bg-indigo-600 rounded-lg mb-2">
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
                         <i class="fas fa-trophy mr-3"></i> Thứ bậc Người dùng
                     </a>
                     <a href="/admin/payment-management"
-                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        class="flex items-center py-3 px-4 text-white bg-indigo-600 rounded-lg mb-2">
                         <i class="fas fa-credit-card mr-3"></i> Quản lý Thanh toán
                     </a>
                 </nav>
             </div>
             <div>
-                <a href="/"
-                    class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg">
-                    <i class="fas fa-sign-out-alt mr-3"></i> Đăng xuất
-                </a>
+                <form action="/logout" method="GET" style="display: inline;">
+                    <button type="submit"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg w-full">
+                        <i class="fas fa-sign-out-alt mr-3"></i> Đăng xuất
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -127,56 +144,103 @@
             <!-- Content -->
             <div class="p-6">
                 <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-4">Thứ bậc người dùng</h2>
-                    <p class="text-gray-300 mb-4">Danh sách xếp hạng dựa trên tổng tiền đã thanh toán thành công:</p>
+                    <h2 class="text-2xl font-bold text-white mb-4">Quản lý Thanh toán</h2>
                     <div class="table-container">
-                        <table>
+                        <table id="transactionsTable">
                             <thead>
                                 <tr>
-                                    <th>Hạng</th>
-                                    <th>Tên người dùng</th>
-                                    <th>Tổng tiền (VNĐ)</th>
-                                    <th>Thứ bậc</th>
+                                    <th>Mã Giao Dịch</th>
+                                    <th>Số Tiền (VND)</th>
+                                    <th>Số Diamonds</th>
+                                    <th>Trạng Thái</th>
+                                    <th>Thời Gian</th>
+                                    <th>Hành Động</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% users.sort((a, b)=> b.totalPayment - a.totalPayment).forEach((user, index) => { %>
+                                <% transactions.forEach(transaction=> { %>
                                     <tr>
                                         <td>
-                                            <i class="fas fa-medal rank-icon"></i>
-                                            <%= index + 1 %>
+                                            <%= transaction.transaction_id %>
                                         </td>
                                         <td>
-                                            <%= user.name || user.email %>
+                                            <%= transaction.amount.toLocaleString() %>
                                         </td>
                                         <td>
-                                            <%= user.totalPayment.toLocaleString() %>
+                                            <%= transaction.diamonds %>
                                         </td>
                                         <td>
-                                            <% if (user.totalPayment < 100000) { %>
-                                                Vô hạng
-                                                <% } else if (user.totalPayment>= 100000 && user.totalPayment <= 300000)
-                                                        { %>
-                                                        Đồng
-                                                        <% } else if (user.totalPayment>= 310000 && user.totalPayment <=
-                                                                500000) { %>
-                                                                Bạc
-                                                                <% } else { %>
-                                                                    Vàng
-                                                                    <% } %>
+                                            <span class="px-2 py-1 text-xs">
+                                                <%= transaction.status==='pending' ? 'Chờ kiểm tra' : 'Hoàn thành' %>
+                                            </span>
                                         </td>
+                                        <td>
+                                            <%= new Date(transaction.created_at).toLocaleString('vi-VN') %>
+                                        </td>
+                                        <% if (transaction.status==='pending' ) { %>
+                                            <td>
+                                                <form id="confirmForm_<%= transaction.transaction_id %>"
+                                                    action="/admin/confirm-transaction" method="POST"
+                                                    style="display: inline;"
+                                                    onsubmit="return confirmTransaction('<%= transaction.transaction_id %>', event);">
+                                                    <input type="hidden" name="transactionId"
+                                                        value="<%= transaction.transaction_id %>">
+                                                    <button type="submit" class="confirm-btn"
+                                                        data-transaction-id="<%= transaction.transaction_id %>">
+                                                        <i class="fas fa-check mr-1"></i> Xác nhận
+                                                    </button>
+                                                </form>
+                                            </td>
+                                            <% } else { %>
+                                                <td>Đã xử lý</td>
+                                                <% } %>
                                     </tr>
-                                    <% }) %>
+                                    <% }); %>
                             </tbody>
                         </table>
                     </div>
-                    <% if (users.length===0) { %>
-                        <p class="text-gray-300 mt-4">Chưa có dữ liệu người dùng.</p>
+                    <% if (transactions.length===0) { %>
+                        <p class="text-gray-300 mt-4">Không có giao dịch nào đang chờ xử lý.</p>
                         <% } %>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function confirmTransaction(transactionId, event) {
+            event.preventDefault();
+
+            const $form = $(`#confirmForm_${transactionId}`);
+            const $row = $form.closest('tr');
+            $row.addClass('loading');
+
+            $.ajax({
+                url: '/admin/confirm-transaction',
+                type: 'POST',
+                data: $form.serialize(),
+                success: function (response) {
+                    if (response.success) {
+                        $row.find('td:nth-child(4) span').removeClass('bg-yellow-100 text-yellow-800')
+                            .addClass('bg-green-100 text-green-800')
+                            .text('Hoàn thành');
+                        $row.find('td:nth-child(6)').text('Đã xử lý');
+                        alert('Xác nhận thành công!');
+                    } else {
+                        alert('Xác nhận thất bại: ' + response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert('Lỗi: ' + error);
+                },
+                complete: function () {
+                    $row.removeClass('loading');
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>

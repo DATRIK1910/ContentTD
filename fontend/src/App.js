@@ -25,6 +25,7 @@ import SummarizeText from './components/tom-tat-van-ban';
 import BuyDiamondsPage from "./components/BuyDiamondsPage";
 import KeywordSuggestionStandalone from "./components/KeywordSuggestionStandalone";
 import EmailGenerator from './components/EmailGenerator';
+import PaymentHistory from './components/PaymentHistory';
 function App() {
   return (
     <Router>
@@ -57,6 +58,8 @@ function App() {
         <Route path="/buy-diamonds" element={<BuyDiamondsPage />} />
         <Route path="/suggest-keywords" element={<KeywordSuggestionStandalone />} />
         <Route path="/email-generator" element={<EmailGenerator />} />
+        <Route path="/payment-history" element={<PaymentHistory />} />
+
 
 
 

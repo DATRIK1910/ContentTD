@@ -1,32 +1,33 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import qrcodeImage from "../assets/qrcode.jpg";
 
 const BuyDiamondsPage = () => {
     const [diamonds, setDiamonds] = useState(0);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [showProcessingModal, setShowProcessingModal] = useState(false);
     const [selectedAmount, setSelectedAmount] = useState(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState(null);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [transactionId, setTransactionId] = useState(null);
 
     useEffect(() => {
         const fetchDiamonds = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem("token"); // Lấy token từ localStorage
+                const token = localStorage.getItem("token");
                 const response = await axios.get("http://localhost:5000/api/user-diamonds", {
-                    withCredentials: true, // Gửi cookie
-                    headers: {
-                        Authorization: `Bearer ${token}`, // Gửi token trong header
-                    },
+                    withCredentials: true,
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 setDiamonds(response.data.diamonds);
             } catch (err) {
                 setError("Lỗi lấy kim cương: " + err.response?.data?.message || err.message);
                 if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
-                    localStorage.removeItem("token"); // Xóa token hết hạn
-                    window.location.href = "/login"; // Thay bằng route đăng nhập của bạn
+                    localStorage.removeItem("token");
+                    window.location.href = "/login";
                 }
             } finally {
                 setLoading(false);
@@ -39,35 +40,27 @@ const BuyDiamondsPage = () => {
         setLoading(true);
         setError("");
         try {
-            const token = localStorage.getItem("token"); // Lấy token từ localStorage
+            const token = localStorage.getItem("token");
             const response = await axios.post(
-                "http://localhost:5000/api/buy-diamonds",
-                { amount },
+                "http://localhost:5000/api/buy-diamonds-manual",
+                { amount, diamonds: diamondsAmount },
                 {
-                    withCredentials: true, // Gửi cookie
-                    headers: {
-                        Authorization: `Bearer ${token}`, // Gửi token trong header
-                    },
+                    withCredentials: true,
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
             if (response.data.success) {
-                if (response.data.url) {
-                    window.location.href = response.data.url; // Chuyển hướng đến VNPay
-                } else if (response.data.message) {
-                    // Trường hợp môi trường localhost, giao dịch hoàn tất ngay
-                    setDiamonds(diamonds + diamondsAmount); // Cập nhật số kim cương ngay lập tức
-                    setShowSuccessModal(true); // Hiển thị modal thành công
-                    setTimeout(() => setShowSuccessModal(false), 3000); // Tự động đóng sau 3 giây
-                }
+                setTransactionId(response.data.transactionId);
+                setShowQRModal(true);
             } else {
-                throw new Error("Không nhận được URL thanh toán từ server");
+                throw new Error(response.data.message || "Không tạo được giao dịch");
             }
         } catch (err) {
             console.error("Lỗi thanh toán:", err.message, err.response?.data);
             setError(err.response?.data?.message || err.message || "Lỗi không xác định khi thanh toán");
             if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
-                localStorage.removeItem("token"); // Xóa token hết hạn
-                window.location.href = "/login"; // Thay bằng route đăng nhập của bạn
+                localStorage.removeItem("token");
+                window.location.href = "/login";
             }
         } finally {
             setLoading(false);
@@ -89,6 +82,47 @@ const BuyDiamondsPage = () => {
         setShowConfirmModal(false);
         setSelectedAmount(null);
         setSelectedDiamonds(null);
+    };
+
+    const handlePaymentComplete = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            await axios.post(
+                "http://localhost:5000/api/update-transaction-status",
+                { transactionId, status: "pending" },
+                {
+                    withCredentials: true,
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            setShowQRModal(false);
+            setShowProcessingModal(true); // Hiển thị modal xử lý
+        } catch (err) {
+            setError("Lỗi cập nhật trạng thái: " + err.response?.data?.message || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
+        let timer;
+        if (showProcessingModal) {
+            timer = setTimeout(() => {
+                setShowProcessingModal(false);
+            }, 5000);
+        }
+        return () => clearTimeout(timer);
+    }, [showProcessingModal]);
+
+    // Thông tin tài khoản ngân hàng
+    const bankInfo = {
+        accountNumber: "1028422328",
+        accountHolder: "NGUYEN TAN DAT",
+        bankName: "Vietcombank",
+        amount: selectedAmount ? selectedAmount.toLocaleString("vi-VN") + " VND" : "",
+        qrImage: qrcodeImage
     };
 
     return (
@@ -203,23 +237,48 @@ const BuyDiamondsPage = () => {
                 </div>
             )}
 
-            {/* Modal Thành công */}
-            {showSuccessModal && (
+            {/* Modal QR */}
+            {showQRModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md text-center">
-                        <svg
-                            className="w-16 h-16 text-green-500 mx-auto mb-4"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                        >
-                            <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Đã mua gói thành công!</h2>
-                        <p className="text-gray-600">Bạn đã nhận được {selectedDiamonds} kim cương.</p>
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Quét mã QR để thanh toán</h2>
+                        <p className="text-gray-600 mb-4">Vui lòng chuyển khoản đến thông tin sau:</p>
+                        <div className="mb-4">
+                            <img src={bankInfo.qrImage} alt="QR Code" style={{ width: "200px", height: "200px" }} />
+                        </div>
+                        <p className="text-gray-700 mb-2"><strong>Số tài khoản:</strong> {bankInfo.accountNumber}</p>
+                        <p className="text-gray-700 mb-2"><strong>Chủ tài khoản:</strong> {bankInfo.accountHolder}</p>
+                        <p className="text-gray-700 mb-2"><strong>Ngân hàng:</strong> {bankInfo.bankName}</p>
+                        <p className="text-gray-700 mb-4"><strong>Số tiền:</strong> {bankInfo.amount}</p>
+                        <p className="text-red-500 mb-4">Ghi chú chuyển khoản: {transactionId}</p>
+                        <div className="flex justify-center gap-4">
+                            <button
+                                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-all duration-300"
+                                onClick={handlePaymentComplete}
+                                disabled={loading}
+                            >
+                                {loading ? "Đang xử lý..." : "Hoàn thành thanh toán"}
+                            </button>
+                            <button
+                                className="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400 transition-all duration-300"
+                                onClick={() => setShowQRModal(false)}
+                                disabled={loading}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Xử lý */}
+            {showProcessingModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md text-center">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Thông báo</h2>
+                        <p className="text-gray-600 mb-6">
+                            Giao dịch đang được kiểm tra, bạn vui lòng đợi ít phút và hãy kiểm tra trong lịch sử giao dịch.
+                        </p>
                     </div>
                 </div>
             )}

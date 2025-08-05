@@ -27,7 +27,8 @@
     "react-toastify": "^11.0.5",
     "redux": "^5.0.1",
     "web-vitals": "^2.1.4",
-    "websocket": "^1.0.35"
+    "websocket": "^1.0.35",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
