@@ -12,12 +12,17 @@ const BuyDiamondsPage = () => {
     const [selectedAmount, setSelectedAmount] = useState(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState(null);
     const [transactionId, setTransactionId] = useState(null);
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
 
     useEffect(() => {
         const fetchDiamonds = async () => {
             setLoading(true);
             try {
                 const token = localStorage.getItem("token");
+                if (!token || !user) {
+                    setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
+                    return;
+                }
                 const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                     withCredentials: true,
                     headers: { Authorization: `Bearer ${token}` },
@@ -33,14 +38,23 @@ const BuyDiamondsPage = () => {
                 setLoading(false);
             }
         };
-        fetchDiamonds();
-    }, []);
+
+        if (user) {
+            fetchDiamonds(); // Chỉ gọi khi có user
+        } else {
+            setDiamonds(0); // Reset khi chưa đăng nhập
+        }
+    }, [user]); // Dependency array chỉ phụ thuộc vào user
 
     const buyDiamonds = async (amount, diamondsAmount) => {
         setLoading(true);
         setError("");
         try {
             const token = localStorage.getItem("token");
+            if (!token || !user) {
+                setError("Vui lòng đăng nhập để mua kim cương!");
+                return;
+            }
             const response = await axios.post(
                 "http://localhost:5000/api/buy-diamonds-manual",
                 { amount, diamonds: diamondsAmount },
@@ -68,6 +82,10 @@ const BuyDiamondsPage = () => {
     };
 
     const handleBuyClick = (amount, diamondsAmount) => {
+        if (!user) {
+            setError("Vui lòng đăng nhập để mua kim cương!");
+            return;
+        }
         setSelectedAmount(amount);
         setSelectedDiamonds(diamondsAmount);
         setShowConfirmModal(true);
@@ -88,6 +106,10 @@ const BuyDiamondsPage = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
+            if (!token || !user) {
+                setError("Vui lòng đăng nhập để xác nhận thanh toán!");
+                return;
+            }
             await axios.post(
                 "http://localhost:5000/api/update-transaction-status",
                 { transactionId, status: "pending" },
@@ -105,12 +127,12 @@ const BuyDiamondsPage = () => {
         }
     };
 
-
     useEffect(() => {
         let timer;
         if (showProcessingModal) {
             timer = setTimeout(() => {
                 setShowProcessingModal(false);
+                // Không gọi fetchDiamonds tự động, để đồng bộ với Navbar
             }, 5000);
         }
         return () => clearTimeout(timer);
@@ -129,14 +151,20 @@ const BuyDiamondsPage = () => {
         <div className="flex flex-col p-6 mt-28 max-w-4xl mx-auto bg-gradient-to-b from-gray-50 to-white shadow-2xl rounded-xl">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Mua Kim Cương</h1>
 
-            {loading && !diamonds && (
-                <p className="text-center text-blue-600 mb-4">Đang tải số kim cương...</p>
-            )}
-            {!loading && (
-                <p className="text-gray-700 mb-8 text-center font-semibold">
-                    Số kim cương còn lại: <span className="text-blue-600">{diamonds}</span> (~{Math.floor(diamonds / 5)}{" "}
-                    lần sử dụng)
-                </p>
+            {user ? (
+                <>
+                    {loading && !diamonds && (
+                        <p className="text-center text-blue-600 mb-4">Đang tải số kim cương...</p>
+                    )}
+                    {!loading && (
+                        <p className="text-gray-700 mb-8 text-center font-semibold">
+                            Số kim cương còn lại: <span className="text-blue-600">{diamonds}</span> (~{Math.floor(diamonds / 5)}{" "}
+                            lần sử dụng)
+                        </p>
+                    )}
+                </>
+            ) : (
+                <p className="text-red-500 mb-6 text-center">Vui lòng đăng nhập để xem số kim cương và mua gói!</p>
             )}
             {error && <p className="text-red-500 mb-6 text-center">{error}</p>}
 
@@ -157,7 +185,7 @@ const BuyDiamondsPage = () => {
                     <button
                         className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         onClick={() => handleBuyClick(100000, 100)}
-                        disabled={loading}
+                        disabled={loading || !user}
                     >
                         {loading ? "Đang xử lý..." : "Thanh toán"}
                     </button>
@@ -179,7 +207,7 @@ const BuyDiamondsPage = () => {
                     <button
                         className="w-full bg-purple-500 text-white py-3 rounded-lg hover:bg-purple-600 transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         onClick={() => handleBuyClick(200000, 210)}
-                        disabled={loading}
+                        disabled={loading || !user}
                     >
                         {loading ? "Đang xử lý..." : "Thanh toán"}
                     </button>
@@ -201,7 +229,7 @@ const BuyDiamondsPage = () => {
                     <button
                         className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         onClick={() => handleBuyClick(500000, 550)}
-                        disabled={loading}
+                        disabled={loading || !user}
                     >
                         {loading ? "Đang xử lý..." : "Thanh toán"}
                     </button>

@@ -25,16 +25,40 @@ const FlexibleWritingPage = () => {
     const [editContent, setEditContent] = useState("");
     const [selectedText, setSelectedText] = useState(""); // Lưu đoạn text được bôi đen
     const [diamonds, setDiamonds] = useState(0); // Thêm trạng thái kim cương
+    const [user] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
     const navigate = useNavigate();
+
+    // Hàm lấy số kim cương từ API
+    const fetchDiamonds = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token || !user) {
+                setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
+                return;
+            }
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+                withCredentials: true,
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setDiamonds(response.data.diamonds);
+        } catch (err) {
+            console.error("Lỗi lấy kim cương:", err.response?.data?.message || err.message);
+            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+            if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         let interval;
-        if (pendingRequest && currentRequest) {
+        if (pendingRequest && currentRequest && user) {
             interval = setInterval(async () => {
                 try {
-                    const user = JSON.parse(localStorage.getItem("user"));
-                    if (!user || !user.email) return;
-
                     const notificationResponse = await axios.get(
                         "http://localhost:5000/api/notifications",
                         {
@@ -78,14 +102,14 @@ const FlexibleWritingPage = () => {
                                 setPendingRequest(false);
                                 setCurrentRequest(null);
                                 // Cập nhật kim cương sau khi duyệt thành công
-                                fetchDiamonds();
+                                await fetchDiamonds();
                                 clearInterval(interval);
                             } else if (matchingNotification.message.includes("bị từ chối")) {
                                 setResult("Nội dung không phù hợp, yêu cầu đã bị từ chối.");
                                 setPendingRequest(false);
                                 setCurrentRequest(null);
                                 // Cập nhật kim cương nếu bị từ chối (khôi phục nếu cần)
-                                fetchDiamonds();
+                                await fetchDiamonds();
                                 clearInterval(interval);
                             }
                         } else {
@@ -104,29 +128,16 @@ const FlexibleWritingPage = () => {
             }, 5000);
         }
         return () => clearInterval(interval);
-    }, [pendingRequest, currentRequest, surveySubmitted]);
+    }, [pendingRequest, currentRequest, user, surveySubmitted]);
 
     useEffect(() => {
-        // Lấy số kim cương khi component mount
-        fetchDiamonds();
-    }, []);
-
-    // Hàm lấy số kim cương từ API
-    const fetchDiamonds = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
-                withCredentials: true,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setDiamonds(response.data.diamonds);
-        } catch (error) {
-            console.error("Lỗi lấy kim cương:", error);
-            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+        // Lấy số kim cương khi component mount hoặc user thay đổi
+        if (user) {
+            fetchDiamonds();
+        } else {
+            setDiamonds(0); // Reset khi chưa đăng nhập
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         const handleContextMenu = (e) => {
@@ -168,16 +179,9 @@ const FlexibleWritingPage = () => {
 
     useEffect(() => {
         const handleRewriteSection = async () => {
-            if (selectedText && result) {
+            if (selectedText && result && user) {
                 setLoading(true);
                 try {
-                    const user = JSON.parse(localStorage.getItem("user"));
-                    if (!user || !user.email) {
-                        alert("Bạn chưa đăng nhập!");
-                        navigate("/login/user");
-                        return;
-                    }
-
                     const response = await axios.post(
                         "http://localhost:5000/api/rewrite-section",
                         {
@@ -208,7 +212,7 @@ const FlexibleWritingPage = () => {
             }
         };
         window.handleRewriteSection = handleRewriteSection;
-    }, [selectedText, result, category, language, topic, keyword, length, navigate]);
+    }, [selectedText, result, category, language, topic, keyword, length, user]);
 
     useEffect(() => {
         const savedKeyword = localStorage.getItem("selectedKeyword");
@@ -223,14 +227,13 @@ const FlexibleWritingPage = () => {
             alert("Vui lòng tạo nội dung trước khi xuất PDF!");
             return;
         }
-        try {
-            const user = JSON.parse(localStorage.getItem("user"));
-            if (!user || !user.email) {
-                alert("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.");
-                navigate("/login/user");
-                return;
-            }
+        if (!user || !user.email) {
+            alert("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.");
+            navigate("/login/user");
+            return;
+        }
 
+        try {
             const response = await axios.post(
                 "http://localhost:5000/api/export-pdf",
                 { content: result, user_email: user.email, filename: `${topic}_article.pdf` },
@@ -247,10 +250,12 @@ const FlexibleWritingPage = () => {
 
     const handleCopy = () => {
         if (result) {
-            navigator.clipboard.writeText(result).then(() => {
-                setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000);
-            }).catch(err => console.error("Lỗi khi sao chép:", err));
+            navigator.clipboard.writeText(result)
+                .then(() => {
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                })
+                .catch((err) => console.error("Lỗi khi sao chép:", err));
         }
     };
 
@@ -270,16 +275,9 @@ const FlexibleWritingPage = () => {
     };
 
     const handleRewriteAll = async () => {
-        if (result) {
+        if (result && user) {
             setLoading(true);
             try {
-                const user = JSON.parse(localStorage.getItem("user"));
-                if (!user || !user.email) {
-                    alert("Bạn chưa đăng nhập!");
-                    navigate("/login/user");
-                    return;
-                }
-
                 const response = await axios.post(
                     "http://localhost:5000/api/rewrite-all",
                     {
@@ -310,7 +308,6 @@ const FlexibleWritingPage = () => {
 
     const handleSurveySubmit = async (e) => {
         e.preventDefault();
-        const user = JSON.parse(localStorage.getItem("user"));
         if (!user || !user.email) return;
 
         try {
@@ -346,7 +343,6 @@ const FlexibleWritingPage = () => {
         setSurveySubmitted(false);
 
         try {
-            const user = JSON.parse(localStorage.getItem("user"));
             if (!user || !user.email) {
                 alert("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.");
                 navigate("/login/user");
@@ -386,7 +382,7 @@ const FlexibleWritingPage = () => {
                         requestId: response.data.request_id,
                     });
                     // Cập nhật kim cương sau khi xử lý file
-                    setDiamonds(prev => prev - 5);
+                    await fetchDiamonds();
                 }
             } else {
                 const response = await axios.post(
@@ -547,12 +543,18 @@ const FlexibleWritingPage = () => {
                         <>
                             <button
                                 onClick={handleCopy}
-                                className={`absolute top-2 right-14 bg-gray-100 text-gray-600 p-1.5 rounded hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center w-8 h-8 ${isCopied ? 'opacity-50' : ''}`}
+                                className={`absolute top-2 right-14 bg-gray-100 text-gray-600 p-1.5 rounded hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center w-8 h-8 ${isCopied ? "opacity-50" : ""}`}
                                 title="Copy nội dung"
                                 disabled={isCopied}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7 9V7C7 5.89543 7.89543 5 9 5H19C20.1046 5 21 5.89543 21 7V17C21 18.1046 20.1046 19 19 19H17M7 9H5C3.89543 9 3 9.89543 3 11V21C3 22.1046 3.89543 23 5 23H15C16.1046 23 17 22.1046 17 21V19M7 9H15C16.1046 9 17 9.89543 17 11V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path
+                                        d="M7 9V7C7 5.89543 7.89543 5 9 5H19C20.1046 5 21 5.89543 21 7V17C21 18.1046 20.1046 19 19 19H17M7 9H5C3.89543 9 3 9.89543 3 11V21C3 22.1046 3.89543 23 5 23H15C16.1046 23 17 22.1046 17 21V19M7 9H15C16.1046 9 17 9.89543 17 11V19"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
                                 </svg>
                             </button>
                             <button
@@ -561,8 +563,20 @@ const FlexibleWritingPage = () => {
                                 title="Chỉnh sửa nội dung"
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M18.4142 6.41422L11.5 13.3284L9.5 15.3284L11.6716 13.1568C11.9116 12.9168 12.2284 12.75 12.5625 12.75C12.8966 12.75 13.2134 12.9168 13.4534 13.1568L20.5 20.2036V18.1716L18.4142 16.0858C18.0391 15.7107 17.5304 15.5 17 15.5C16.4696 15.5 15.9609 15.7107 15.5858 16.0858L13.5 18.1716L11.3284 16L18.2426 9.08579C18.6101 8.71829 18.9029 8.29744 19.1015 7.84141C19.3002 7.38538 19.3992 6.90179 19.3992 6.41422C19.3992 5.92664 19.3002 5.44305 19.1015 4.98702C18.9029 4.531 18.6101 4.1101 18.2426 3.74264C17.8751 3.37518 17.4543 3.08236 16.9982 2.88371C16.5422 2.68506 16.0586 2.58606 15.571 2.58606C15.0834 2.58606 14.5998 2.68506 14.1438 2.88371C13.6878 3.08236 13.2669 3.37518 12.8994 3.74264L6 10.6421" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path
+                                        d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                    <path
+                                        d="M18.4142 6.41422L11.5 13.3284L9.5 15.3284L11.6716 13.1568C11.9116 12.9168 12.2284 12.75 12.5625 12.75C12.8966 12.75 13.2134 12.9168 13.4534 13.1568L20.5 20.2036V18.1716L18.4142 16.0858C18.0391 15.7107 17.5304 15.5 17 15.5C16.4696 15.5 15.9609 15.7107 15.5858 16.0858L13.5 18.1716L11.3284 16L18.2426 9.08579C18.6101 8.71829 18.9029 8.29744 19.1015 7.84141C19.3002 7.38538 19.3992 6.90179 19.3992 6.41422C19.3992 5.92664 19.3002 5.44305 19.1015 4.98702C18.9029 4.531 18.6101 4.1101 18.2426 3.74264C17.8751 3.37518 17.4543 3.08236 16.9982 2.88371C16.5422 2.68506 16.0586 2.58606 15.571 2.58606C15.0834 2.58606 14.5998 2.68506 14.1438 2.88371C13.6878 3.08236 13.2669 3.37518 12.8994 3.74264L6 10.6421"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
                                 </svg>
                             </button>
                             <button
@@ -571,7 +585,13 @@ const FlexibleWritingPage = () => {
                                 title="Viết lại toàn bộ"
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 4v5h5M4 19v-5h5m-5 0l6-6m8 7v-5h-5m0 0l6-6m-6 6l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path
+                                        d="M4 4v5h5M4 19v-5h5m-5 0l6-6m8 7v-5h-5m0 0l6-6m-6 6l6 6"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
                                 </svg>
                             </button>
                         </>

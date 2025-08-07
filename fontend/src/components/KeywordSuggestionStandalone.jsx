@@ -9,31 +9,45 @@ const KeywordSuggestionStandalone = () => {
     const [language, setLanguage] = useState("vi"); // Mặc định tiếng Việt
     const [loading, setLoading] = useState(false);
     const [diamonds, setDiamonds] = useState(0); // Thêm trạng thái kim cương
+    const [user] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
     const navigate = useNavigate();
 
     useEffect(() => {
         // Reset keywords khi topic thay đổi
         setKeywords([]);
-        // Lấy số kim cương khi component mount
-        fetchDiamonds();
-    }, [topic]);
 
-    // Hàm lấy số kim cương từ API
-    const fetchDiamonds = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
-                withCredentials: true,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setDiamonds(response.data.diamonds);
-        } catch (error) {
-            console.error("Lỗi lấy kim cương:", error);
-            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+        // Lấy số kim cương khi component mount
+        const fetchDiamonds = async () => {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem("token");
+                if (!token || !user) {
+                    setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
+                    return;
+                }
+                const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+                    withCredentials: true,
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setDiamonds(response.data.diamonds);
+            } catch (err) {
+                console.error("Lỗi lấy kim cương:", err.response?.data?.message || err.message);
+                setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+                if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
+                    localStorage.removeItem("token");
+                    window.location.href = "/login";
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchDiamonds(); // Chỉ gọi khi có user
+        } else {
+            setDiamonds(0); // Reset khi chưa đăng nhập
         }
-    };
+    }, [user, topic]); // Dependency array phụ thuộc vào user và topic
 
     const handleSuggestKeywords = async () => {
         if (!topic) {
@@ -44,7 +58,6 @@ const KeywordSuggestionStandalone = () => {
         setLoading(true);
 
         try {
-            const user = JSON.parse(localStorage.getItem("user"));
             if (!user || !user.email) {
                 alert("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.");
                 navigate("/login/user");
@@ -71,8 +84,13 @@ const KeywordSuggestionStandalone = () => {
 
             if (response.data.success) {
                 setKeywords(response.data.keywords);
-                // Cập nhật số kim cương sau khi trừ
-                setDiamonds(prev => prev - 5);
+                // Cập nhật lại kim cương từ server
+                const token = localStorage.getItem("token");
+                const diamondResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
+                    withCredentials: true,
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setDiamonds(diamondResponse.data.diamonds);
             } else {
                 alert("Không thể gợi ý từ khóa: " + response.data.message);
             }

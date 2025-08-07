@@ -13,6 +13,7 @@ const RewritePage = () => {
     const [isEditing, setIsEditing] = useState(false); // Thêm state cho chỉnh sửa
     const [editContent, setEditContent] = useState(""); // Thêm state cho nội dung chỉnh sửa
     const [diamonds, setDiamonds] = useState(0); // Thêm trạng thái kim cương
+    const [user] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
     const navigate = useNavigate();
 
     // Danh sách các đoạn văn bản mẫu
@@ -23,29 +24,43 @@ const RewritePage = () => {
         "SEO đóng vai trò quan trọng trong việc tối ưu hóa nội dung, giúp bài viết của bạn tiếp cận nhiều người hơn.",
     ];
 
+    // Hàm lấy số kim cương từ API
+    const fetchDiamonds = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token || !user) {
+                setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
+                return;
+            }
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+                withCredentials: true,
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setDiamonds(response.data.diamonds);
+        } catch (err) {
+            console.error("Lỗi lấy kim cương:", err.response?.data?.message || err.message);
+            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+            if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         // Reset rewrittenText khi inputText thay đổi
         setRewrittenText("");
-        // Lấy số kim cương khi component mount
-        fetchDiamonds();
-    }, [inputText]);
 
-    // Hàm lấy số kim cương từ API
-    const fetchDiamonds = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
-                withCredentials: true,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setDiamonds(response.data.diamonds);
-        } catch (error) {
-            console.error("Lỗi lấy kim cương:", error);
-            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+        // Lấy số kim cương khi component mount
+        if (user) {
+            fetchDiamonds(); // Chỉ gọi khi có user
+        } else {
+            setDiamonds(0); // Reset khi chưa đăng nhập
         }
-    };
+    }, [inputText, user]); // Dependency array phụ thuộc vào inputText và user
 
     const handleUploadAndRewrite = async () => {
         if (!inputText.trim()) {
@@ -57,7 +72,6 @@ const RewritePage = () => {
         setRewrittenText("");
 
         try {
-            const user = JSON.parse(localStorage.getItem("user"));
             if (!user || !user.email) {
                 alert("Bạn chưa đăng nhập! Vui lòng đăng nhập để tiếp tục.");
                 navigate("/login/user");
@@ -94,8 +108,8 @@ const RewritePage = () => {
                 const rewrittenContent = response.data.rewrittenText;
                 setRewrittenText(rewrittenContent);
 
-                // Cập nhật số kim cương sau khi trừ
-                setDiamonds(prev => prev - 5);
+                // Cập nhật lại kim cương từ server
+                await fetchDiamonds();
 
                 // Tự động lưu vào lịch sử
                 await axios.post(

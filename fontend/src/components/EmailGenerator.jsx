@@ -21,7 +21,34 @@ const EmailGenerator = () => {
     const [isProcessing, setIsProcessing] = useState(false); // Trạng thái chờ xử lý
     const [isDone, setIsDone] = useState(false); // Trạng thái hoàn tất
     const [diamonds, setDiamonds] = useState(0); // Thêm trạng thái kim cương
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
     const navigate = useNavigate();
+
+    // Hàm lấy số kim cương từ API
+    const fetchDiamonds = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            if (!token || !user) {
+                setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
+                return;
+            }
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+                withCredentials: true,
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setDiamonds(response.data.diamonds);
+        } catch (err) {
+            console.error("Lỗi lấy kim cương:", err.response?.data?.message || err.message);
+            setDiamonds(0); // Đặt mặc định 0 nếu có lỗi
+            if (err.response?.data?.message === "Token đã hết hạn, vui lòng đăng nhập lại!") {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         let interval;
@@ -44,24 +71,16 @@ const EmailGenerator = () => {
             };
             interval = setInterval(checkStatus, 5000);
         }
+
         // Lấy số kim cương khi component mount
-        const fetchDiamonds = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const response = await axios.get("http://localhost:5000/api/user-diamonds", {
-                    withCredentials: true,
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setDiamonds(response.data.diamonds);
-            } catch (error) {
-                console.error("Lỗi lấy kim cương:", error);
-            }
-        };
-        fetchDiamonds();
+        if (user) {
+            fetchDiamonds(); // Chỉ gọi khi có user
+        } else {
+            setDiamonds(0); // Reset khi chưa đăng nhập
+        }
+
         return () => clearInterval(interval);
-    }, [requestId, generatedEmail]);
+    }, [requestId, generatedEmail, user]); // Dependency array phụ thuộc vào user
 
     const handleGenerateEmail = async (e) => {
         e.preventDefault();
@@ -73,7 +92,6 @@ const EmailGenerator = () => {
         setLoading(true);
 
         try {
-            const user = JSON.parse(localStorage.getItem("user"));
             if (!user || !user.email) {
                 alert("Bạn chưa đăng nhập!");
                 navigate("/login/user");
@@ -110,8 +128,8 @@ const EmailGenerator = () => {
                     setGeneratedEmail(response.data.content);
                     setLoading(false); // Tắt loading nếu có content ngay lập tức
                 }
-                // Cập nhật số kim cương sau khi trừ
-                setDiamonds(prev => prev - 5);
+                // Cập nhật lại kim cương từ server
+                await fetchDiamonds();
             } else {
                 alert("Lỗi tạo email: " + response.data.message);
                 setLoading(false);

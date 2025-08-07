@@ -28,6 +28,10 @@ const Navbar = () => {
     const fetchDiamonds = async () => {
         try {
             const token = localStorage.getItem("token");
+            if (!token) {
+                setDiamonds(0);
+                return;
+            }
             const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                 withCredentials: true,
                 headers: {
@@ -43,8 +47,7 @@ const Navbar = () => {
 
     // Xử lý đăng xuất
     const handleLogout = () => {
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        localStorage.clear(); // Xóa toàn bộ localStorage khi đăng xuất
         setUser(null);
         setDiamonds(0); // Reset kim cương khi đăng xuất
         navigate("/");
