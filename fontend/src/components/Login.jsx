@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import axios from "axios"; // Thêm axios để gọi API
-
+import { ipBE } from "../data/consts";
 const clientId = "241737379741-c8obrgkfg4j8047rg6m0vq6bmv1tnd9f.apps.googleusercontent.com";
 
 const Login = () => {
@@ -22,7 +22,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch("http://localhost:5000/login/user", {
+            const response = await fetch(ipBE + "login/user", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -39,7 +39,7 @@ const Login = () => {
                 localStorage.setItem("token", data.token);
 
                 // Lấy kim cương mới sau khi đăng nhập
-                const diamondsResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
+                const diamondsResponse = await axios.get(ipBE + "api/user-diamonds", {
                     headers: { Authorization: `Bearer ${data.token}` },
                 });
                 localStorage.setItem("diamonds", diamondsResponse.data.diamonds); // Lưu kim cương vào localStorage
@@ -84,7 +84,7 @@ const Login = () => {
                 localStorage.setItem("token", data.token || "dummy-token");
 
                 // Lấy kim cương mới sau khi đăng nhập
-                const diamondsResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
+                const diamondsResponse = await axios.get(ipBE + "/api/user-diamonds", {
                     headers: { Authorization: `Bearer ${data.token}` },
                 });
                 localStorage.setItem("diamonds", diamondsResponse.data.diamonds);
