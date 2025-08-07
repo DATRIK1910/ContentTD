@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ipBE } from "../data/consts";
 
 const Register = () => {
     const [name, setName] = useState("");
@@ -14,7 +15,7 @@ const Register = () => {
         setMessage("");
 
         try {
-            const response = await fetch("http://localhost:5000/register", {
+            const response = await fetch(ipBE + "register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),

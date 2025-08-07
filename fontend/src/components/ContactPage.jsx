@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./tailwind.css"
+import { ipBE } from "../data/consts";
 const ContactPage = () => {
     const [formData, setFormData] = useState({
         name: "",
@@ -38,7 +39,7 @@ const ContactPage = () => {
         setStatus(""); // Reset trạng thái trước khi gửi
 
         try {
-            const response = await fetch("http://localhost:5000/contact", {
+            const response = await fetch(ipBE + "contact", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

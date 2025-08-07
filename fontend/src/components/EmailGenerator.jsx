@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { ipBE } from "../data/consts";
 
 const EmailGenerator = () => {
     const [topic, setTopic] = useState("");
@@ -33,7 +34,7 @@ const EmailGenerator = () => {
                 setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                 return;
             }
-            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+            const response = await axios.get(ipBE + "api/user-diamonds", {
                 withCredentials: true,
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -56,7 +57,7 @@ const EmailGenerator = () => {
             setIsProcessing(true); // Chuyển sang trạng thái chờ xử lý
             const checkStatus = async () => {
                 try {
-                    const response = await axios.get(`http://localhost:5000/api/check-email-status?request_id=${requestId}`, {
+                    const response = await axios.get(ipBE + `api/check-email-status?request_id=${requestId}`, {
                         withCredentials: true,
                     });
                     if (response.data.success && response.data.content) {
@@ -117,7 +118,7 @@ const EmailGenerator = () => {
             formData.append("time", time);
             formData.append("location", location);
 
-            const response = await axios.post("http://localhost:5000/api/generate-email", formData, {
+            const response = await axios.post(ipBE + "api/generate-email", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
                 withCredentials: true,
             });

@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ChevronDownIcon, ChevronUpIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid"; // Thêm MagnifyingGlassIcon
 import { toast } from 'react-toastify'; // Import toast
+import { ipBE } from "../data/consts";
 
 const History = () => {
     const [history, setHistory] = useState([]);
@@ -29,13 +30,13 @@ const History = () => {
                     return;
                 }
 
-                const historyResponse = await axios.get("http://localhost:5000/api/user-history", {
+                const historyResponse = await axios.get(ipBE + "api/user-history", {
                     params: { user_email: user.email }
                 });
                 if (!historyResponse.data.success) throw new Error(historyResponse.data.message || "Lỗi khi lấy lịch sử");
                 setHistory(historyResponse.data.history);
 
-                const keywordResponse = await axios.get("http://localhost:5000/api/keyword-history", {
+                const keywordResponse = await axios.get(ipBE + "api/keyword-history", {
                     params: { user_email: user.email }
                 });
                 if (!keywordResponse.data.success) throw new Error(keywordResponse.data.message || "Lỗi khi lấy lịch sử từ khóa");

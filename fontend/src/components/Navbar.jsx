@@ -33,7 +33,7 @@ const Navbar = () => {
                 setDiamonds(0);
                 return;
             }
-            const response = await axios.get(ipBE + "/api/user-diamonds", {
+            const response = await axios.get(ipBE + "api/user-diamonds", {
                 withCredentials: true,
                 headers: {
                     Authorization: `Bearer ${token}`,

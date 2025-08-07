@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
+import { ipBE } from "../data/consts";
 
 const FlexibleWritingPage = () => {
     const [topic, setTopic] = useState("");
@@ -37,7 +38,7 @@ const FlexibleWritingPage = () => {
                 setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                 return;
             }
-            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+            const response = await axios.get(ipBE + "api/user-diamonds", {
                 withCredentials: true,
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -60,7 +61,7 @@ const FlexibleWritingPage = () => {
             interval = setInterval(async () => {
                 try {
                     const notificationResponse = await axios.get(
-                        "http://localhost:5000/api/notifications",
+                        ipBE + "api/notifications",
                         {
                             params: { user_email: user.email },
                             withCredentials: true,
@@ -77,7 +78,7 @@ const FlexibleWritingPage = () => {
 
                             if (matchingNotification.message.includes("đã được duyệt")) {
                                 const historyResponse = await axios.get(
-                                    "http://localhost:5000/api/user-history",
+                                    ipBE + "api/user-history",
                                     {
                                         params: { user_email: user.email },
                                         withCredentials: true,
@@ -183,7 +184,7 @@ const FlexibleWritingPage = () => {
                 setLoading(true);
                 try {
                     const response = await axios.post(
-                        "http://localhost:5000/api/rewrite-section",
+                        ipBE + "api/rewrite-section",
                         {
                             user_email: user.email,
                             original_content: result,
@@ -235,7 +236,7 @@ const FlexibleWritingPage = () => {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/export-pdf",
+                ipBE + "api/export-pdf",
                 { content: result, user_email: user.email, filename: `${topic}_article.pdf` },
                 { responseType: "blob", withCredentials: true }
             );
@@ -279,7 +280,7 @@ const FlexibleWritingPage = () => {
             setLoading(true);
             try {
                 const response = await axios.post(
-                    "http://localhost:5000/api/rewrite-all",
+                    ipBE + "api/rewrite-all",
                     {
                         user_email: user.email,
                         original_content: result,
@@ -312,7 +313,7 @@ const FlexibleWritingPage = () => {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/submit-survey",
+                ipBE + "api/submit-survey",
                 {
                     user_email: user.email,
                     is_satisfied: isSatisfied,
@@ -386,7 +387,7 @@ const FlexibleWritingPage = () => {
                 }
             } else {
                 const response = await axios.post(
-                    "http://localhost:5000/api/generate-content",
+                    ipBE + "api/generate-content",
                     {
                         field: category,
                         language,
@@ -414,7 +415,7 @@ const FlexibleWritingPage = () => {
 
                 try {
                     await axios.post(
-                        "http://localhost:5000/api/auto-approve-content",
+                        ipBE + "api/auto-approve-content",
                         { id: response.data.request_id, userEmail: user.email },
                         { withCredentials: true }
                     );

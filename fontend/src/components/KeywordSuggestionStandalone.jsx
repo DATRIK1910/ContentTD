@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaCopy } from "react-icons/fa"; // Icon cho nút copy
+import { ipBE } from "../data/consts";
 
 const KeywordSuggestionStandalone = () => {
     const [topic, setTopic] = useState("");
@@ -25,7 +26,7 @@ const KeywordSuggestionStandalone = () => {
                     setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                     return;
                 }
-                const response = await axios.get("http://localhost:5000/api/user-diamonds", {
+                const response = await axios.get(ipBE + "api/user-diamonds", {
                     withCredentials: true,
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -77,7 +78,7 @@ const KeywordSuggestionStandalone = () => {
             formData.append("userEmail", user.email);
 
             const response = await axios.post(
-                "http://localhost:5000/api/suggest-keywords",
+                ipBE + "api/suggest-keywords",
                 formData,
                 { headers: { "Content-Type": "multipart/form-data" }, withCredentials: true }
             );
@@ -86,7 +87,7 @@ const KeywordSuggestionStandalone = () => {
                 setKeywords(response.data.keywords);
                 // Cập nhật lại kim cương từ server
                 const token = localStorage.getItem("token");
-                const diamondResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
+                const diamondResponse = await axios.get(ipBE + "api/user-diamonds", {
                     withCredentials: true,
                     headers: { Authorization: `Bearer ${token}` },
                 });
