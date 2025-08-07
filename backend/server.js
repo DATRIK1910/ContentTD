@@ -252,7 +252,18 @@ app.post("/api/auto-approve-content", async (req, res) => {
                     }
                 );
 
-                const aiResponse = JSON.parse(response.data.choices[0].message.content.trim());
+                // Lấy nội dung từ response và làm sạch
+                let aiResponseText = response.data.choices[0].message.content.trim();
+                // Loại bỏ các ký tự không mong muốn trước khi parse
+                aiResponseText = aiResponseText.replace(/^\s*```json\s*|\s*```$/g, '').trim();
+                let aiResponse;
+                try {
+                    aiResponse = JSON.parse(aiResponseText);
+                } catch (parseError) {
+                    console.error("Error parsing AI response:", parseError.message, "Raw response:", aiResponseText);
+                    return res.status(500).json({ success: false, message: "Lỗi phân tích phản hồi từ AI: Định dạng JSON không hợp lệ" });
+                }
+
                 const { decision, reason } = aiResponse;
 
                 if (decision === "approve") {
@@ -321,6 +332,129 @@ app.post("/api/auto-approve-content", async (req, res) => {
                 res.status(500).json({ success: false, message: "Lỗi khi xử lý duyệt tự động: " + error.message });
             }
         })();
+    });
+});
+
+// Route xử lý duyệt nội dung
+app.post('/admin/approve-content', (req, res) => {
+    const { id, userEmail } = req.body;
+
+    if (!id || !userEmail) {
+        return res.status(400).json({ success: false, message: 'Thiếu thông tin id hoặc userEmail' });
+    }
+
+    db.query('SELECT * FROM pending_contents WHERE id = ? AND status = ?', [id, 'PENDING'], (err, results) => {
+        if (err) {
+            console.error('Error fetching pending content:', err);
+            return res.status(500).json({ success: false, message: 'Lỗi khi lấy nội dung chờ duyệt' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy nội dung chờ duyệt' });
+        }
+
+        const content = results[0];
+        console.log("Pending content to approve:", content);
+
+        // Chuyển nội dung sang bảng history, bao gồm request_id
+        db.query(
+            'INSERT INTO history (user_email, topic, category, language, content, created_at, request_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [content.user_email, content.topic, content.category, content.language, content.content, content.created_at, content.request_id],
+            (err, result) => {
+                if (err) {
+                    console.error('Error saving to history:', err);
+                    return res.status(500).json({ success: false, message: 'Lỗi khi lưu vào lịch sử' });
+                }
+
+                console.log("Saved to history:", {
+                    user_email: content.user_email,
+                    topic: content.topic,
+                    category: content.category,
+                    language: content.language,
+                    content: content.content,
+                    created_at: content.created_at,
+                    request_id: content.request_id,
+                });
+
+                db.query('UPDATE pending_contents SET status = ? WHERE id = ?', ['APPROVED', id], (err) => {
+                    if (err) {
+                        console.error('Error updating pending content status:', err);
+                        return res.status(500).json({ success: false, message: 'Lỗi khi cập nhật trạng thái' });
+                    }
+
+                    // Lưu thông báo với request_id
+                    db.query(
+                        'INSERT INTO notifications (user_email, message, created_at, request_id) VALUES (?, ?, ?, ?)',
+                        [userEmail, 'Nội dung của bạn đã được duyệt thành công!', new Date(), content.request_id],
+                        (err) => {
+                            if (err) {
+                                console.error('Error saving notification:', err);
+                                return res.status(500).json({ success: false, message: 'Lỗi khi lưu thông báo' });
+                            }
+
+                            db.query('DELETE FROM pending_contents WHERE id = ?', [id], (err) => {
+                                if (err) {
+                                    console.error('Error deleting pending content:', err);
+                                    return res.status(500).json({ success: false, message: 'Lỗi khi xóa nội dung chờ duyệt' });
+                                }
+
+                                res.status(200).json({ success: true, message: 'Duyệt nội dung thành công' });
+                            });
+                        }
+                    );
+                });
+            }
+        );
+    });
+});
+
+// Route xử lý từ chối nội dung
+app.post('/admin/reject-content', (req, res) => {
+    const { id, userEmail } = req.body;
+
+    if (!id || !userEmail) {
+        return res.status(400).json({ success: false, message: 'Thiếu thông tin id hoặc userEmail' });
+    }
+
+    db.query('SELECT * FROM pending_contents WHERE id = ? AND status = ?', [id, 'PENDING'], (err, results) => {
+        if (err) {
+            console.error('Error fetching pending content:', err);
+            return res.status(500).json({ success: false, message: 'Lỗi khi lấy nội dung chờ duyệt' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy nội dung chờ duyệt' });
+        }
+
+        const content = results[0];
+
+        db.query('UPDATE pending_contents SET status = ? WHERE id = ?', ['REJECTED', id], (err) => {
+            if (err) {
+                console.error('Error updating pending content status:', err);
+                return res.status(500).json({ success: false, message: 'Lỗi khi cập nhật trạng thái' });
+            }
+
+            // Lưu thông báo với request_id
+            db.query(
+                'INSERT INTO notifications (user_email, message, created_at, request_id) VALUES (?, ?, ?, ?)',
+                [userEmail, 'Nội dung của bạn không phù hợp, yêu cầu đã bị từ chối.', new Date(), content.request_id],
+                (err) => {
+                    if (err) {
+                        console.error('Error saving notification:', err);
+                        return res.status(500).json({ success: false, message: 'Lỗi khi lưu thông báo' });
+                    }
+
+                    db.query('DELETE FROM pending_contents WHERE id = ?', [id], (err) => {
+                        if (err) {
+                            console.error('Error deleting pending content:', err);
+                            return res.status(500).json({ success: false, message: 'Lỗi khi xóa nội dung chờ duyệt' });
+                        }
+
+                        res.status(200).json({ success: true, message: 'Từ chối HANDUNG thành công' });
+                    });
+                }
+            );
+        });
     });
 });
 
