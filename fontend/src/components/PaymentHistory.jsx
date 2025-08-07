@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
+import { ipBE } from "../data/consts";
 
 const PaymentHistory = () => {
     const [transactions, setTransactions] = useState([]);
@@ -23,7 +24,7 @@ const PaymentHistory = () => {
                     return;
                 }
 
-                const response = await axios.get("http://localhost:5000/api/payment-history", {
+                const response = await axios.get(ipBE + "api/payment-history", {
                     params: { user_id: user.id }
                 });
                 if (!response.data.success) throw new Error(response.data.message || "Lỗi khi lấy lịch sử thanh toán");
@@ -112,10 +113,7 @@ const PaymentHistory = () => {
                                 {transactions.map((transaction) => (
                                     <tr key={transaction.transaction_id} className="hover:bg-gray-50 transition-colors">
                                         <td className="py-3 px-4 border-b">{transaction.transaction_id}</td>
-                                        <td className="py-3 px-4 border-b">
-                                            {Number(transaction.amount).toLocaleString('vi-VN')} VND
-                                        </td>
-
+                                        <td className="py-3 px-4 border-b">{transaction.amount.toLocaleString()}</td>
                                         <td className="py-3 px-4 border-b">{transaction.diamonds}</td>
                                         <td className="py-3 px-4 border-b">
                                             <span className={`px-2 py-1 rounded-full text-xs ${transaction.status === 'completed' ? 'bg-green-100 text-green-800' : transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
