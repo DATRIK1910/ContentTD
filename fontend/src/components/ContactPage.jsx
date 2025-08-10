@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import "./tailwind.css"
-import { ipBE } from "../data/consts";
+import "./tailwind.css";
+
 const ContactPage = () => {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         message: "",
-
     });
 
     const [status, setStatus] = useState("");
@@ -39,7 +38,7 @@ const ContactPage = () => {
         setStatus(""); // Reset trạng thái trước khi gửi
 
         try {
-            const response = await fetch(ipBE + "contact", {
+            const response = await fetch("http://localhost:5000/contact", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -49,7 +48,7 @@ const ContactPage = () => {
 
             if (response.ok) {
                 setStatus("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất.");
-                setFormData({ name: "", email: "", message: "", _subject: "" }); // Reset form
+                setFormData({ name: "", email: "", message: "" }); // Reset form
             } else {
                 const errorData = await response.json();
                 setStatus(errorData.message || "Có lỗi xảy ra. Vui lòng thử lại.");
@@ -62,7 +61,7 @@ const ContactPage = () => {
     };
 
     const handleReset = () => {
-        setFormData({ name: "", email: "", message: "", _subject: "" });
+        setFormData({ name: "", email: "", message: "" });
         setStatus(""); // Reset trạng thái thông báo
     };
 
@@ -99,8 +98,6 @@ const ContactPage = () => {
                             required
                         />
 
-
-
                         <textarea
                             className="shadow mb-4 min-h-0 appearance-none border rounded h-64 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             placeholder="Nhập nội dung liên hệ tại đây..."
@@ -132,8 +129,6 @@ const ContactPage = () => {
                     {status && <p className="text-center text-white mt-4">{status}</p>}
                 </div>
             </div>
-
-
         </div>
     );
 };

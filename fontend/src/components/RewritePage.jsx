@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { ipBE } from "../data/consts";
 
 const RewritePage = () => {
     const [inputText, setInputText] = useState("");
@@ -34,7 +33,7 @@ const RewritePage = () => {
                 setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                 return;
             }
-            const response = await axios.get(ipBE + "api/user-diamonds", {
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                 withCredentials: true,
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -95,7 +94,7 @@ const RewritePage = () => {
             formData.append("userEmail", user.email);
 
             const response = await axios.post(
-                ipBE + "api/rewrite-text",
+                "http://localhost:5000/api/rewrite-text",
                 formData,
                 {
                     headers: {
@@ -114,7 +113,7 @@ const RewritePage = () => {
 
                 // Tự động lưu vào lịch sử
                 await axios.post(
-                    ipBE + "api/history",
+                    "http://localhost:5000/api/history",
                     {
                         user_email: user.email,
                         topic: "Viết lại văn bản",

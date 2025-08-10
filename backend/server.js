@@ -14,6 +14,7 @@ const JWT_SECRET = "your_jwt_secret_key";
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const formidable = require("formidable");
+const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require("uuid");
 const cookieParser = require("cookie-parser");
 const app = express();
@@ -126,6 +127,14 @@ const checkDiamonds = (req, res, next) => {
 };
 
 
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: '1050080260@sv.hcmunre.edu.vn',
+        pass: 'rypp jnci tlfv zquh'
+    }
+});
+
 app.post("/register", async (req, res) => {
     try {
         console.log("Received register request:", req.body);
@@ -134,6 +143,14 @@ app.post("/register", async (req, res) => {
         if (!name || !email || !password) {
             console.log("Missing required fields");
             return res.status(400).json({ message: "Họ tên, email và mật khẩu là bắt buộc" });
+        }
+
+        // Validation mật khẩu
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[@.])[A-Za-z0-9@.]{8,24}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                message: "Mật khẩu phải từ 8 đến 24 ký tự, chứa ít nhất 1 ký tự hoa, 1 số, và 1 ký tự @ hoặc ."
+            });
         }
 
         console.log("Hashing password...");
@@ -200,6 +217,236 @@ app.post("/login/user", async (req, res) => {
     } catch (error) {
         console.error("Login error:", error.message, err.stack);
         res.status(500).json({ success: false, message: "Lỗi server: Xử lý yêu cầu thất bại" });
+    }
+});
+
+
+// Quên mật khẩu
+app.post("/forgot-password", async (req, res) => {
+    try {
+        console.log("Received forgot password request:", req.body);
+        const { email } = req.body;
+
+        if (!email) {
+            console.log("Missing email");
+            return res.status(400).json({ message: "Email là bắt buộc" });
+        }
+
+        console.log("Checking email in database...");
+        db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
+            if (err) {
+                console.error("Database error:", err.message, err.stack);
+                return res.status(500).json({ message: "Lỗi server: Không thể kiểm tra email" });
+            }
+
+            if (results.length === 0) {
+                console.log("Email not found:", email);
+                return res.status(404).json({ message: "Email không tồn tại" });
+            }
+
+            const user = results[0];
+            const resetToken = require('crypto').randomBytes(20).toString('hex');
+            const resetTokenExpiry = new Date(Date.now() + 3600000);
+
+            console.log("Updating reset token in database...");
+            db.query(
+                "UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?",
+                [resetToken, resetTokenExpiry, email],
+                (err) => {
+                    if (err) {
+                        console.error("Database error:", err.message, err.stack);
+                        return res.status(500).json({ message: "Lỗi server: Không thể cập nhật token" });
+                    }
+
+                    console.log("Sending reset email...");
+                    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`; // Thay bằng domain frontend
+                    const mailOptions = {
+                        from: 'your-email@gmail.com',
+                        to: email,
+                        subject: 'Yêu cầu đặt lại mật khẩu - ContentDT',
+                        text: `Kính gửi ${user.name},\n\nBạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình trên ContentDT. Để tiếp tục, vui lòng nhấp vào liên kết bên dưới:\n\n${resetLink}\n\nLưu ý: Liên kết này chỉ có hiệu lực trong vòng 1 giờ. Nếu bạn không thực hiện yêu cầu này, vui lòng liên hệ đội ngũ hỗ trợ của chúng tôi ngay lập tức.\n\nTrân trọng,\nĐội ngũ ContentDT\nsupport@contentdt.com\nhttps://www.contentdt.com`
+                    };
+
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.error("Email error:", error.message, error.stack);
+                            return res.status(500).json({ message: "Lỗi server: Không thể gửi email" });
+                        }
+                        console.log("Email sent:", info.response);
+                        res.status(200).json({ message: "Một liên kết đặt lại mật khẩu đã được gửi đến email của bạn" });
+                    });
+                }
+            );
+        });
+    } catch (error) {
+        console.error("Forgot password error:", error.message, error.stack);
+        res.status(500).json({ message: "Lỗi server: Xử lý yêu cầu thất bại" });
+    }
+});
+
+app.post("/reset-password", async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: "Token và mật khẩu mới là bắt buộc" });
+        }
+
+        // Validation mật khẩu
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[@.])[A-Za-z0-9@.]{8,24}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({
+                message: "Mật khẩu phải từ 8 đến 24 ký tự, chứa ít nhất 1 ký tự hoa, 1 số, và 1 ký tự @ hoặc ."
+            });
+        }
+
+        console.log("Verifying reset token...");
+        db.query(
+            "SELECT * FROM users WHERE reset_token = ? AND reset_token_expiry > NOW()",
+            [token],
+            async (err, results) => {
+                if (err) {
+                    console.error("Database error:", err.message, err.stack);
+                    return res.status(500).json({ message: "Lỗi server: Không thể xác minh token" });
+                }
+
+                if (results.length === 0) {
+                    return res.status(400).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+                }
+
+                const user = results[0];
+                const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+                console.log("Updating password...");
+                db.query(
+                    "UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE email = ?",
+                    [hashedPassword, user.email],
+                    (err) => {
+                        if (err) {
+                            console.error("Database error:", err.message, err.stack);
+                            return res.status(500).json({ message: "Lỗi server: Không thể cập nhật mật khẩu" });
+                        }
+                        res.status(200).json({ message: "Mật khẩu đã được đặt lại thành công" });
+                    }
+                );
+            }
+        );
+    } catch (error) {
+        console.error("Reset password error:", error.message, error.stack);
+        res.status(500).json({ message: "Lỗi server: Xử lý yêu cầu thất bại" });
+    }
+});
+
+
+app.post("/api/profile", async (req, res) => {
+    try {
+
+        const { userId, email } = req.body;
+
+        if (!userId && !email) {
+            return res.status(400).json({ success: false, message: "userId hoặc email là bắt buộc" });
+        }
+
+        const query = `
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                COALESCE(SUM(t.amount), 0) as totalPayment,
+                CASE 
+                    WHEN COALESCE(SUM(t.amount), 0) < 100000 THEN 'Vô hạng'
+                    WHEN COALESCE(SUM(t.amount), 0) >= 100000 AND COALESCE(SUM(t.amount), 0) <= 300000 THEN 'Đồng'
+                    WHEN COALESCE(SUM(t.amount), 0) >= 310000 AND COALESCE(SUM(t.amount), 0) <= 500000 THEN 'Bạc'
+                    ELSE 'Vàng'
+                END as rank
+            FROM 
+                users u
+            LEFT JOIN 
+                transactions t ON u.id = t.user_id AND t.status = 'completed'
+            WHERE 
+                u.id = ? OR u.email = ?
+            GROUP BY 
+                u.id, u.name, u.email
+        `;
+
+        db.query(query, [userId || null, email || null], (err, results) => {
+            if (err) {
+                console.error("Database error:", err.message, err.stack);
+                return res.status(500).json({ success: false, message: "Lỗi server: Không thể truy vấn thông tin" });
+            }
+
+            if (results.length === 0) {
+                return res.status(404).json({ success: false, message: "Người dùng không tồn tại" });
+            }
+
+            const profile = results[0];
+            res.status(200).json({
+                success: true,
+                message: "Lấy thông tin hồ sơ thành công",
+                profile: { id: profile.id, name: profile.name, email: profile.email, totalPayment: profile.totalPayment, rank: profile.rank },
+            });
+        });
+    } catch (error) {
+        console.error("Profile error:", error.message, error.stack);
+        res.status(500).json({ success: false, message: "Lỗi server: Xử lý yêu cầu thất bại" });
+    }
+});
+
+
+app.post("/api/profile/change-password", async (req, res) => {
+    try {
+        console.log("Received change password request:", req.body);
+        const { userId, email, currentPassword, newPassword } = req.body;
+
+        if (!userId && !email) {
+            return res.status(400).json({ success: false, message: "userId hoặc email là bắt buộc" });
+        }
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: "Mật khẩu hiện tại và mật khẩu mới là bắt buộc" });
+        }
+
+        // Validation mật khẩu mới
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[@.])[A-Za-z0-9@.]{8,24}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({
+                success: false,
+                message: "Mật khẩu phải từ 8 đến 24 ký tự, chứa ít nhất 1 ký tự hoa, 1 số, và 1 ký tự @ hoặc ."
+            });
+        }
+
+        // Kiểm tra người dùng
+        db.query("SELECT password FROM users WHERE id = ? OR email = ?", [userId || null, email || null], async (err, results) => {
+            if (err) {
+                console.error("Database error:", err.message, err.stack);
+                return res.status(500).json({ success: false, message: "Lỗi server" });
+            }
+            if (results.length === 0) {
+                return res.status(404).json({ success: false, message: "Người dùng không tồn tại" });
+            }
+
+            const user = results[0];
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không đúng" });
+            }
+
+            // Cập nhật mật khẩu mới
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            db.query(
+                "UPDATE users SET password = ? WHERE id = ? OR email = ?",
+                [hashedPassword, userId || null, email || null],
+                (err) => {
+                    if (err) {
+                        console.error("Database error:", err.message, err.stack);
+                        return res.status(500).json({ success: false, message: "Lỗi server" });
+                    }
+                    res.json({ success: true, message: "Mật khẩu đã được thay đổi thành công" });
+                }
+            );
+        });
+    } catch (error) {
+        console.error("Change password error:", error.message, error.stack);
+        res.status(500).json({ success: false, message: "Lỗi server" });
     }
 });
 

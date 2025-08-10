@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bars3Icon, XMarkIcon, DocumentTextIcon, ArrowPathIcon, ScissorsIcon, TagIcon, EnvelopeIcon } from "@heroicons/react/24/solid";
 import axios from "axios"; // Thêm axios để gọi API
-import { ipBE } from "../data/consts";
 
 const Navbar = () => {
     const navigate = useNavigate();
@@ -33,7 +32,7 @@ const Navbar = () => {
                 setDiamonds(0);
                 return;
             }
-            const response = await axios.get(ipBE + "api/user-diamonds", {
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                 withCredentials: true,
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -77,6 +76,12 @@ const Navbar = () => {
                         onClick={() => navigate("/")}
                     >
                         Giới Thiệu
+                    </li>
+                    <li
+                        className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
+                        onClick={() => navigate("/profile")}
+                    >
+                        Hồ sơ
                     </li>
                     <li
                         className="relative group"
@@ -191,12 +196,7 @@ const Navbar = () => {
                     >
                         Mua gói
                     </li>
-                    <li
-                        className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
-                        onClick={() => navigate("/tintuc")}
-                    >
-                        Tin Tức
-                    </li>
+
                     <li
                         className="text-gray-700 text-lg font-medium hover:text-red-600 transition-colors duration-300 cursor-pointer"
                         onClick={() => navigate("/contact")}

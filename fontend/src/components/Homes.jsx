@@ -4,7 +4,6 @@ import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook, faExchangeAlt, faCut, faFont, faEnvelope, faComment, faShieldAlt } from "@fortawesome/free-solid-svg-icons";
 import { w3cwebsocket as W3CWebSocket } from "websocket";
-import { ipBE } from "../data/consts";
 
 const illustrationUrl = "https://tse4.mm.bing.net/th/id/OIP.7gN5TegRceeQEpAQXX5jrgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3";
 const illustration2Url = "https://keydifferences.com/wp-content/uploads/2023/07/content-writing.jpg";
@@ -24,7 +23,7 @@ const Home = () => {
     useEffect(() => {
         const fetchTopSurveys = async () => {
             try {
-                const response = await axios.get(ipBE + "api/top-surveys", {
+                const response = await axios.get("http://localhost:5000/api/top-surveys", {
                     withCredentials: true,
                 });
                 if (response.data.success) {
@@ -61,7 +60,7 @@ const Home = () => {
 
         const fetchTopUsers = async () => {
             try {
-                const response = await axios.get(ipBE + "api/top-users", {
+                const response = await axios.get("http://localhost:5000/api/top-users", {
                     withCredentials: true,
                 });
                 if (response.data.success) {

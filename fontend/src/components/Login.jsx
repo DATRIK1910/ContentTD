@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import axios from "axios"; // Thêm axios để gọi API
-import { ipBE } from "../data/consts";
+import axios from "axios";
+
 const clientId = "241737379741-c8obrgkfg4j8047rg6m0vq6bmv1tnd9f.apps.googleusercontent.com";
 
 const Login = () => {
@@ -14,7 +14,7 @@ const Login = () => {
     // Xử lý đăng nhập bằng email & password
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(""); // Xóa lỗi cũ
+        setError("");
 
         if (!email.trim() || !password.trim()) {
             setError("Vui lòng nhập email và mật khẩu!");
@@ -22,7 +22,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch(ipBE + "login/user", {
+            const response = await fetch("http://localhost:5000/login/user", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -38,13 +38,11 @@ const Login = () => {
                 localStorage.setItem("user", JSON.stringify({ id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role }));
                 localStorage.setItem("token", data.token);
 
-                // Lấy kim cương mới sau khi đăng nhập
-                const diamondsResponse = await axios.get(ipBE + "api/user-diamonds", {
+                const diamondsResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
                     headers: { Authorization: `Bearer ${data.token}` },
                 });
-                localStorage.setItem("diamonds", diamondsResponse.data.diamonds); // Lưu kim cương vào localStorage
+                localStorage.setItem("diamonds", diamondsResponse.data.diamonds);
 
-                // Phát sự kiện đăng nhập thành công
                 window.dispatchEvent(new CustomEvent("loginSuccess", { detail: { user: data.user, token: data.token, diamonds: diamondsResponse.data.diamonds } }));
 
                 if (data.user.role === "admin") {
@@ -52,7 +50,7 @@ const Login = () => {
                 } else {
                     navigate("/");
                 }
-                window.location.reload(); // Reload page để cập nhật toàn bộ state
+                window.location.reload();
             } else {
                 setError(data.message || "Email hoặc mật khẩu không đúng");
             }
@@ -65,7 +63,7 @@ const Login = () => {
     // Xử lý khi đăng nhập bằng Google thành công
     const handleGoogleSuccess = async (response) => {
         try {
-            setError(""); // Xóa lỗi cũ
+            setError("");
             const googleToken = response.credential;
             const res = await fetch("http://localhost:5000/auth/google", {
                 method: "POST",
@@ -83,13 +81,11 @@ const Login = () => {
                 localStorage.setItem("user", JSON.stringify({ id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role }));
                 localStorage.setItem("token", data.token || "dummy-token");
 
-                // Lấy kim cương mới sau khi đăng nhập
-                const diamondsResponse = await axios.get(ipBE + "/api/user-diamonds", {
+                const diamondsResponse = await axios.get("http://localhost:5000/api/user-diamonds", {
                     headers: { Authorization: `Bearer ${data.token}` },
                 });
                 localStorage.setItem("diamonds", diamondsResponse.data.diamonds);
 
-                // Phát sự kiện đăng nhập thành công
                 window.dispatchEvent(new CustomEvent("loginSuccess", { detail: { user: data.user, token: data.token, diamonds: diamondsResponse.data.diamonds } }));
 
                 if (data.user.role === "admin") {
@@ -97,7 +93,7 @@ const Login = () => {
                 } else {
                     navigate("/");
                 }
-                window.location.reload(); // Reload page để cập nhật toàn bộ state
+                window.location.reload();
             } else {
                 setError(data.message || "Không thể xác thực tài khoản Google!");
             }
@@ -105,6 +101,11 @@ const Login = () => {
             console.error("Google login error:", err.message, err.stack);
             setError("Đăng nhập bằng Google thất bại! " + err.message);
         }
+    };
+
+    // Xử lý khi nhấp vào liên kết quên mật khẩu
+    const handleForgotPassword = () => {
+        navigate("/forgot-password"); // Chuyển hướng đến trang quên mật khẩu
     };
 
     return (
@@ -145,6 +146,11 @@ const Login = () => {
                                 Bạn chưa có tài khoản?{" "}
                                 <a href="/register" className="text-blue-600 hover:underline">
                                     Đăng ký ngay
+                                </a>
+                            </p>
+                            <p className="mt-2 text-center text-gray-600">
+                                <a href="#" onClick={handleForgotPassword} className="text-blue-600 hover:underline">
+                                    Quên mật khẩu?
                                 </a>
                             </p>
 

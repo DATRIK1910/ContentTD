@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
-import { ipBE } from "../data/consts";
 
 const PaymentHistory = () => {
     const [transactions, setTransactions] = useState([]);
@@ -24,7 +23,7 @@ const PaymentHistory = () => {
                     return;
                 }
 
-                const response = await axios.get(ipBE + "api/payment-history", {
+                const response = await axios.get("http://localhost:5000/api/payment-history", {
                     params: { user_id: user.id }
                 });
                 if (!response.data.success) throw new Error(response.data.message || "Lỗi khi lấy lịch sử thanh toán");

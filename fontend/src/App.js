@@ -6,9 +6,10 @@ import ContentCreationPage from './components/ContentPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import FlexibleWriting from './components/Viet-bai-linh-hoat';
-
-
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import Home from './components/Homes';
+import Profile from './components/Profile';
 
 import ContactPage from './components/ContactPage';
 import RewritePage from './components/RewritePage';
@@ -43,6 +44,9 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login/user" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/profile" element={<Profile />} />
 
         <Route path="/gioithieu" element={<Introduction />} />
         <Route path="/tintuc" element={<NewsPage />} />

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import qrcodeImage from "../assets/qrcode.jpg";
-import { ipBE } from "../data/consts";
 
 const BuyDiamondsPage = () => {
     const [diamonds, setDiamonds] = useState(0);
@@ -24,7 +23,7 @@ const BuyDiamondsPage = () => {
                     setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                     return;
                 }
-                const response = await axios.get(ipBE + "api/user-diamonds", {
+                const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                     withCredentials: true,
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -57,7 +56,7 @@ const BuyDiamondsPage = () => {
                 return;
             }
             const response = await axios.post(
-                ipBE + "api/buy-diamonds-manual",
+                "http://localhost:5000/api/buy-diamonds-manual",
                 { amount, diamonds: diamondsAmount },
                 {
                     withCredentials: true,
@@ -112,7 +111,7 @@ const BuyDiamondsPage = () => {
                 return;
             }
             await axios.post(
-                ipBE + "api/update-transaction-status",
+                "http://localhost:5000/api/update-transaction-status",
                 { transactionId, status: "pending" },
                 {
                     withCredentials: true,

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { ipBE } from "../data/consts";
 
 const SummarizeText = () => {
     const [text, setText] = useState("");
@@ -24,7 +23,7 @@ const SummarizeText = () => {
                 setDiamonds(0); // Không lấy kim cương nếu chưa đăng nhập
                 return;
             }
-            const response = await axios.get(ipBE + "api/user-diamonds", {
+            const response = await axios.get("http://localhost:5000/api/user-diamonds", {
                 withCredentials: true,
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -81,7 +80,7 @@ const SummarizeText = () => {
             formData.append("text", text);
             formData.append("userEmail", user.email);
 
-            const response = await fetch(ipBE + "api/summarize-text", {
+            const response = await fetch("http://localhost:5000/api/summarize-text", {
                 method: "POST",
                 body: formData,
             });
@@ -99,7 +98,7 @@ const SummarizeText = () => {
 
             // Tự động lưu vào lịch sử
             await axios.post(
-                ipBE + "api/history",
+                "http://localhost:5000/api/history",
                 {
                     user_email: user.email,
                     topic: "Tóm tắt văn bản",
