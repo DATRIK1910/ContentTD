@@ -4,10 +4,13 @@ import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook, faExchangeAlt, faCut, faFont, faEnvelope, faComment, faShieldAlt } from "@fortawesome/free-solid-svg-icons";
 import { w3cwebsocket as W3CWebSocket } from "websocket";
+import ContentCutIcon from '@mui/icons-material/ContentCut';
+import SummarizeIcon from '@mui/icons-material/Summarize';
+import RedoIcon from '@mui/icons-material/Redo';
 
 const illustrationUrl = "https://tse4.mm.bing.net/th/id/OIP.7gN5TegRceeQEpAQXX5jrgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3";
 const illustration2Url = "https://keydifferences.com/wp-content/uploads/2023/07/content-writing.jpg";
-const illustration3Url = "https://contenteditor.net/_next/image?url=%2Fimages%2Fimage05.png&w=640&q=75";
+
 
 const Home = () => {
     const navigate = useNavigate();
@@ -181,6 +184,66 @@ const Home = () => {
                 </div>
             </section>
 
+            <section className="container mx-auto px-6 py-16 bg-gray-50 rounded-xl shadow-inner text-center">
+                <h2 className="text-4xl font-bold text-gray-800 mb-8 text-left pl-6">
+                    Chuyển đổi nội dung của bạn bằng các công cụ
+                    dựa trên AI mạnh mẽ
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <span className="text-5xl text-black-500 block mb-4">
+                            <ContentCutIcon style={{ fontSize: '48px' }} />
+                        </span>
+                        <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                            Mở khóa tiềm năng của AI để tạo nội dung dễ dàng
+                        </h3>
+                        <p className="text-gray-600">
+                            Làm theo các bước đơn giản sau để khai thác sức mạnh của AI cho nhu cầu nội dung của bạn.
+                        </p>
+                        <div className="flex justify-center mt-4">
+                            <a href="/viet-bai-linh-hoat" className="text-black-500 hover:text-blue-600 transition-all duration-300 flex items-center">
+                                Khám phá →
+                            </a>
+                        </div>
+                    </div>
+                    <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <span className="text-5xl text-black-500 block mb-4">
+                            <SummarizeIcon style={{ fontSize: '48px' }} />
+                        </span>
+                        <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                            Tóm tắt đoạn văn bản dài chỉ trong vài giây với trình tóm tắt của chúng tôi
+                        </h3>
+                        <p className="text-gray-600">
+                            Nhận tóm tắt ngắn gọn nắm bắt được nội dung của bạn
+                        </p>
+                        <div className="flex justify-center mt-4">
+                            <a href="/tomtatvanban" className="text-black-500 hover:text-blue-600 transition-all duration-300 flex items-center">
+                                Khám phá →
+                            </a>
+                        </div>
+                    </div>
+
+
+                    <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <span className="text-5xl text-black-500 block mb-4">
+                            <RedoIcon style={{ fontSize: '48px' }} />
+                        </span>
+                        <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                            Tối ưu hóa chiến lược nội dung của bạn với Công cụ gợi ý từ khóa trực quan của chúng tôi
+                        </h3>
+                        <p className="text-gray-600">
+                            Khám phá các từ khóa có liên quan đến chủ đề giúp nâng cao khả năng hiển thị của bạn.
+                        </p>
+                        <div className="flex justify-center mt-4">
+                            <a href="/suggest-keywords" className="text-black-500 hover:text-blue-600 transition-all duration-300 flex items-center">
+                                Khám phá →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Section: Các dịch vụ chúng tôi cung cấp */}
             <section className="container mx-auto px-6 py-16 bg-gray-50 rounded-xl shadow-inner text-center">
                 <h2 className="text-4xl font-bold text-gray-800 mb-8">
@@ -190,41 +253,43 @@ const Home = () => {
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
                     <a
                         href="/content-page"
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-blue-700 hover:text-purple-500"
+                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-black-700 hover:text-blue-500"
                     >
                         <FontAwesomeIcon icon={faBook} size="2x" className="mb-2" />
                         <span className="text-lg font-semibold">Tạo nội dung</span>
                     </a>
                     <a
                         href="/rewrite-text"
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-blue-700 hover:text-purple-500"
+                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-black-700 hover:text-blue-500"
                     >
                         <FontAwesomeIcon icon={faExchangeAlt} size="2x" className="mb-2" />
                         <span className="text-lg font-semibold">Viết lại văn bản</span>
                     </a>
                     <a
                         href="/tomtatvanban"
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-blue-700 hover:text-purple-500"
+                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-black-700 hover:text-blue-500"
                     >
                         <FontAwesomeIcon icon={faCut} size="2x" className="mb-2" />
                         <span className="text-lg font-semibold">Tóm tắt văn bản</span>
                     </a>
                     <a
                         href="/suggest-keywords"
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-blue-700 hover:text-purple-500"
+                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-black-700 hover:text-blue-500"
                     >
                         <FontAwesomeIcon icon={faFont} size="2x" className="mb-2" />
                         <span className="text-lg font-semibold">Gợi ý từ khóa</span>
                     </a>
                     <a
                         href="/email-generator"
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-blue-700 hover:text-purple-500"
+                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-black-700 hover:text-blue-500"
                     >
                         <FontAwesomeIcon icon={faEnvelope} size="2x" className="mb-2" />
                         <span className="text-lg font-semibold">Viết Email</span>
                     </a>
                 </div>
             </section>
+
+
 
             {/* Section 2: Điều gì làm nên sự khác biệt (hình trái) */}
             <section className="container mx-auto px-6 py-16 bg-gray-50 rounded-xl shadow-inner">
@@ -243,28 +308,6 @@ const Home = () => {
                         <div className="w-16 h-1 bg-blue-700 mb-6"></div>
                         <p className="text-gray-600 text-lg leading-relaxed">
                             ContentDT sử dụng AI thông minh để nâng cấp nội dung, chọn từ khóa, ngắt câu hoàn hảo như biên tập viên chuyên nghiệp. Dù khuếch đại hay tái tạo, mọi thứ chỉ trong tích tắc!
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Section 3: Một cú nhấp chuột và hoàn tất (hình phải) */}
-            <section className="container mx-auto px-6 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                    <div className="md:order-2">
-                        <img
-                            src={illustration3Url}
-                            alt="One-click solution"
-                            className="w-full max-w-md mx-auto rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300"
-                        />
-                    </div>
-                    <div className="md:order-1">
-                        <h2 className="text-4xl font-bold text-gray-800 mb-4">
-                            Một cú nhấp chuột và hoàn tất
-                        </h2>
-                        <div className="w-16 h-1 bg-blue-700 mb-6"></div>
-                        <p className="text-gray-600 text-lg leading-relaxed">
-                            Chọn nội dung, để ContentDT tự động paraphrase tiếng Việt chính xác. Không cần trả phí để bắt đầu – thử ngay hôm nay!
                         </p>
                     </div>
                 </div>

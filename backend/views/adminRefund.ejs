@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= title %>
+        <%= typeof title !=='undefined' ? title : 'Quản lý Hoàn tiền' %>
     </title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -94,7 +94,7 @@
                     </a>
                     <a href="/admin/history"
                         class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
-                        <i class="fas fa-history mr-3"></i> Lịch sử hoạt động người dùng
+                        <i class="fas fa-history mr-3"></i> Lịch sử hoạt động của người dùng
                     </a>
                     <a href="/admin/pending-content"
                         class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
@@ -113,11 +113,11 @@
                         <i class="fas fa-trophy mr-3"></i> Thứ bậc Người dùng
                     </a>
                     <a href="/admin/payment-management"
-                        class="flex items-center py-3 px-4 text-white bg-indigo-600 rounded-lg mb-2">
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
                         <i class="fas fa-credit-card mr-3"></i> Quản lý Thanh toán
                     </a>
                     <a href="/admin/refund"
-                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        class="flex items-center py-3 px-4 text-white bg-indigo-600 rounded-lg mb-2">
                         <i class="fas fa-undo mr-3"></i> Quản lý Hoàn tiền
                     </a>
                 </nav>
@@ -137,7 +137,7 @@
             <!-- Header -->
             <header class="bg-gray-800 p-4 shadow-lg flex justify-between items-center">
                 <h1 class="text-xl font-semibold text-white">
-                    <%= title %>
+                    <%= typeof title !=='undefined' ? title : 'Quản lý Hoàn tiền' %>
                 </h1>
                 <div class="flex items-center space-x-4">
                     <span class="text-gray-300">Xin chào, Admin</span>
@@ -148,63 +148,68 @@
             <!-- Content -->
             <div class="p-6">
                 <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-4">Quản lý Thanh toán</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4">Quản lý Hoàn tiền</h2>
                     <div class="table-container">
-                        <table id="transactionsTable">
+                        <table id="refundsTable">
                             <thead>
                                 <tr>
                                     <th>Mã Giao Dịch</th>
+                                    <th>Người Dùng</th>
                                     <th>Số Tiền (VND)</th>
-                                    <th>Số Diamonds</th>
+                                    <th>Lý Do</th>
                                     <th>Trạng Thái</th>
                                     <th>Thời Gian</th>
                                     <th>Hành Động</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% transactions.forEach(transaction=> { %>
+                                <% refunds.forEach(refund=> { %>
                                     <tr>
                                         <td>
-                                            <%= transaction.transaction_id %>
+                                            <%= refund.transaction_id %>
                                         </td>
                                         <td>
-                                            <%= transaction.amount.toLocaleString() %>
+                                            <%= refund.user_id %>
                                         </td>
                                         <td>
-                                            <%= transaction.diamonds %>
+                                            <%= refund.refund_amount.toLocaleString() %>
                                         </td>
                                         <td>
-                                            <span class="px-2 py-1 text-xs">
-                                                <%= transaction.status==='pending' ? 'Chờ kiểm tra' : 'Hoàn thành' %>
+                                            <%= refund.reason %>
+                                        </td>
+                                        <td>
+                                            <span
+                                                class="px-2 py-1 text-xs <%= refund.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : refund.status === 'VERIFIED' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
+                                                <%= refund.status %>
                                             </span>
                                         </td>
                                         <td>
-                                            <%= new Date(transaction.created_at).toLocaleString('vi-VN') %>
+                                            <%= new Date(refund.request_date).toLocaleString('vi-VN') %>
                                         </td>
-                                        <% if (transaction.status==='pending' ) { %>
+                                        <% if (refund.status==='PENDING' || refund.status==='VERIFIED' ) { %>
                                             <td>
-                                                <form id="confirmForm_<%= transaction.transaction_id %>"
-                                                    action="/admin/confirm-transaction" method="POST"
-                                                    style="display: inline;"
-                                                    onsubmit="return confirmTransaction('<%= transaction.transaction_id %>', event);">
-                                                    <input type="hidden" name="transactionId"
-                                                        value="<%= transaction.transaction_id %>">
+                                                <form id="confirmForm_<%= refund.id %>" action="/admin/process-refund"
+                                                    method="POST" style="display: inline;"
+                                                    onsubmit="return confirmRefund('<%= refund.id %>', event);">
+                                                    <input type="hidden" name="refund_id" value="<%= refund.id %>">
                                                     <button type="submit" class="confirm-btn"
-                                                        data-transaction-id="<%= transaction.transaction_id %>">
+                                                        data-refund-id="<%= refund.id %>">
                                                         <i class="fas fa-check mr-1"></i> Xác nhận
                                                     </button>
                                                 </form>
                                             </td>
-                                            <% } else { %>
-                                                <td>Đã xử lý</td>
-                                                <% } %>
+                                            <% } else if (refund.status==='PROCESSED' ) { %>
+                                                <td>Hoàn tiền hoàn tất</td>
+                                                <% } else { %>
+                                                    <td>Đã từ chối</td>
+                                                    <% } %>
                                     </tr>
                                     <% }); %>
                             </tbody>
                         </table>
                     </div>
-                    <% if (transactions.length===0) { %>
-                        <p class="text-gray-300 mt-4">Không có giao dịch nào đang chờ xử lý.</p>
+                    <% if (refunds.length===0) { %>
+                        <p class="text-gray-300 mt-4">Không có yêu cầu hoàn tiền nào.</p>
                         <% } %>
                 </div>
             </div>
@@ -214,24 +219,24 @@
     <!-- JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        function confirmTransaction(transactionId, event) {
+        function confirmRefund(refundId, event) {
             event.preventDefault();
 
-            const $form = $(`#confirmForm_${transactionId}`);
+            const $form = $(`#confirmForm_${refundId}`);
             const $row = $form.closest('tr');
             $row.addClass('loading');
 
             $.ajax({
-                url: '/admin/confirm-transaction',
+                url: '/admin/process-refund',
                 type: 'POST',
                 data: $form.serialize(),
                 success: function (response) {
                     if (response.success) {
-                        $row.find('td:nth-child(4) span').removeClass('bg-yellow-100 text-yellow-800')
+                        $row.find('td:nth-child(5) span').removeClass('bg-yellow-100 text-yellow-800 bg-blue-100 text-blue-800')
                             .addClass('bg-green-100 text-green-800')
-                            .text('Hoàn thành');
-                        $row.find('td:nth-child(6)').text('Đã xử lý');
-                        alert('Xác nhận thành công!');
+                            .text('PROCESSED');
+                        $row.find('td:nth-child(7)').text('Hoàn tiền hoàn tất');
+                        alert('Xác nhận hoàn tiền thành công!');
                     } else {
                         alert('Xác nhận thất bại: ' + response.message);
                     }

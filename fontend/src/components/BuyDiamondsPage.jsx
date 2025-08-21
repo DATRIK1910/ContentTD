@@ -12,7 +12,7 @@ const BuyDiamondsPage = () => {
     const [selectedAmount, setSelectedAmount] = useState(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState(null);
     const [transactionId, setTransactionId] = useState(null);
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user"))); // Kiểm tra user
+    const [user] = useState(JSON.parse(localStorage.getItem("user")));
 
     useEffect(() => {
         const fetchDiamonds = async () => {
@@ -271,7 +271,7 @@ const BuyDiamondsPage = () => {
                     <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md text-center">
                         <h2 className="text-xl font-bold text-gray-800 mb-4">Quét mã QR để thanh toán</h2>
                         <p className="text-gray-600 mb-4">Vui lòng chuyển khoản đến thông tin sau:</p>
-                        <div className="mb-4">
+                        <div className="mb-4 flex justify-center"> {/* Thêm flex và justify-center để căn giữa */}
                             <img src={bankInfo.qrImage} alt="QR Code" style={{ width: "200px", height: "200px" }} />
                         </div>
                         <p className="text-gray-700 mb-2"><strong>Số tài khoản:</strong> {bankInfo.accountNumber}</p>

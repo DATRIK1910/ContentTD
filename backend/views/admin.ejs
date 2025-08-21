@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
@@ -16,6 +16,33 @@
 
         .sidebar:hover {
             background-color: #2d3748;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #4ade80;
+            /* Màu xanh lá nổi bật */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .trend {
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .trend-up {
+            color: #10b981;
+            /* Xanh lá cho tăng */
+        }
+
+        .trend-down {
+            color: #dc2626;
+            /* Đỏ cho giảm */
+        }
+
+        .trend-neutral {
+            color: #a0aec0;
+            /* Xám cho không đổi */
         }
     </style>
 </head>
@@ -65,6 +92,10 @@
                     <a href="/admin/payment-management"
                         class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
                         <i class="fas fa-credit-card mr-3"></i> Quản lý Thanh toán
+                    </a>
+                    <a href="/admin/refund"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-undo mr-3"></i> Quản lý Hoàn tiền
                     </a>
                 </nav>
             </div>
@@ -117,8 +148,39 @@
                         </div>
                     </div>
 
+                    <!-- Thống kê dịch vụ -->
                     <div class="mt-6">
                         <h3 class="text-xl font-semibold text-white mb-4">Thống kê Sử dụng Dịch vụ</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <% if (serviceStats && serviceStats.length> 0) { %>
+                                <% serviceStats.forEach(stat=> { %>
+                                    <div class="bg-gray-700 p-4 rounded-lg shadow-md">
+                                        <h3 class="text-lg font-semibold text-white">
+                                            <%= stat.category %>
+                                        </h3>
+                                        <p class="text-3xl font-bold"><span class="highlight">
+                                                <%= stat.currentValue %> lượt
+                                            </span></p>
+                                        <div
+                                            class="trend <%= (stat.changeValue > 0) ? 'trend-up' : (stat.changeValue < 0) ? 'trend-down' : 'trend-neutral' %>">
+                                            <% if (stat.prevValue> 0) { %>
+                                                <%= (stat.changeValue> 0) ? '+' : '' %><%= stat.changeValue %> lượt
+                                                        <%= (stat.changeValue> 0) ? '↑' : (stat.changeValue < 0) ? '↓'
+                                                                : '→' %> so với tháng trước
+                                                                <% } else { %>
+                                                                    Không có dữ liệu tháng trước
+                                                                    <% } %>
+                                        </div>
+                                    </div>
+                                    <% }) %>
+                                        <% } else { %>
+                                            <p class="text-gray-500">Không có dữ liệu thống kê dịch vụ.</p>
+                                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-xl font-semibold text-white mb-4">Thống kê Sử dụng Dịch vụ (Bảng)</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left text-gray-300">
                                 <thead class="bg-gray-700">

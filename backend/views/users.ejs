@@ -75,6 +75,51 @@
         .assign-btn:hover {
             background-color: #059669;
         }
+
+        /* Thêm style cho phần thống kê */
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background-color: #2d3748;
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background-color: #4a5568;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+
+        .trend {
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .trend-up {
+            color: #10b981;
+        }
+
+        .trend-down {
+            color: #dc2626;
+        }
     </style>
 </head>
 
@@ -124,6 +169,10 @@
                         class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
                         <i class="fas fa-credit-card mr-3"></i> Quản lý Thanh toán
                     </a>
+                    <a href="/admin/refund"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-undo mr-3"></i> Quản lý Hoàn tiền
+                    </a>
                 </nav>
             </div>
             <div>
@@ -153,6 +202,47 @@
             <div class="p-6">
                 <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
                     <h2 class="text-2xl font-bold text-white mb-4">Quản lý Người dùng</h2>
+
+                    <!-- Thống kê người dùng -->
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-label">Tổng số người dùng</div>
+                            <div class="stat-value">
+                                <%= totalUsers %>
+                            </div>
+                            <div
+                                class="trend <%= (prevTotalUsers !== undefined && totalUsers > prevTotalUsers) ? 'trend-up' : (prevTotalUsers !== undefined && totalUsers < prevTotalUsers) ? 'trend-down' : '' %>">
+                                <% if (prevTotalUsers !==undefined) { %>
+                                    <%= (totalUsers> prevTotalUsers) ? '+' : '' %><%= (prevTotalUsers !==undefined) ?
+                                            ((totalUsers - prevTotalUsers) / prevTotalUsers * 100).toFixed(2) : 0 %>%
+                                            <%= (totalUsers> prevTotalUsers) ? '↑' : (totalUsers < prevTotalUsers) ? '↓'
+                                                    : '→' %> so với tháng trước
+                                                    <% } else { %>
+                                                        Không có dữ liệu tháng trước
+                                                        <% } %>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Người dùng mới tháng này</div>
+                            <div class="stat-value">
+                                <%= newUsersThisMonth %>
+                            </div>
+                            <div
+                                class="trend <%= (prevNewUsersThisMonth !== undefined && newUsersThisMonth > prevNewUsersThisMonth) ? 'trend-up' : (prevNewUsersThisMonth !== undefined && newUsersThisMonth < prevNewUsersThisMonth) ? 'trend-down' : '' %>">
+                                <% if (prevNewUsersThisMonth !==undefined) { %>
+                                    <%= (newUsersThisMonth> prevNewUsersThisMonth) ? '+' : '' %><%=
+                                            (prevNewUsersThisMonth !==undefined) ? ((newUsersThisMonth -
+                                            prevNewUsersThisMonth) / prevNewUsersThisMonth * 100).toFixed(2) : 0 %>%
+                                            <%= (newUsersThisMonth> prevNewUsersThisMonth) ? '↑' : (newUsersThisMonth <
+                                                    prevNewUsersThisMonth) ? '↓' : '→' %> so với tháng trước
+                                                    <% } else { %>
+                                                        Không có dữ liệu tháng trước
+                                                        <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng người dùng -->
                     <div class="table-container">
                         <table>
                             <thead>

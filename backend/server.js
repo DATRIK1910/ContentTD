@@ -20,7 +20,9 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const port = 5000;
 const emailKeywordHandler = require('./handlers/Email_KeywordHandlers');
-const { buyDiamondsHandler, buyDiamondsManualHandler, updateTransactionStatusHandler, vnpayReturnHandler } = require('./handlers/paymentHandlers');
+const { buyDiamondsHandler, buyDiamondsManualHandler, updateTransactionStatusHandler, vnpayReturnHandler, requestRefundHandler,
+    verifyOtpHandler,
+    processRefundHandler, sendOtpHandler } = require('./handlers/paymentHandlers');
 const {
     loginAdminGetHandler,
     adminDashboardHandler,
@@ -340,7 +342,6 @@ app.post("/reset-password", async (req, res) => {
 
 app.post("/api/profile", async (req, res) => {
     try {
-
         const { userId, email } = req.body;
 
         if (!userId && !email) {
@@ -352,17 +353,41 @@ app.post("/api/profile", async (req, res) => {
                 u.id,
                 u.name,
                 u.email,
-                COALESCE(SUM(t.amount), 0) as totalPayment,
+                COALESCE(SUM(CASE 
+                    WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                    THEN t.amount 
+                    ELSE 0 
+                END), 0) as totalPayment,
                 CASE 
-                    WHEN COALESCE(SUM(t.amount), 0) < 100000 THEN 'Vô hạng'
-                    WHEN COALESCE(SUM(t.amount), 0) >= 100000 AND COALESCE(SUM(t.amount), 0) <= 300000 THEN 'Đồng'
-                    WHEN COALESCE(SUM(t.amount), 0) >= 310000 AND COALESCE(SUM(t.amount), 0) <= 500000 THEN 'Bạc'
+                    WHEN COALESCE(SUM(CASE 
+                        WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                        THEN t.amount 
+                        ELSE 0 
+                    END), 0) < 100000 THEN 'Vô hạng'
+                    WHEN COALESCE(SUM(CASE 
+                        WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                        THEN t.amount 
+                        ELSE 0 
+                    END), 0) >= 100000 AND COALESCE(SUM(CASE 
+                        WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                        THEN t.amount 
+                        ELSE 0 
+                    END), 0) <= 300000 THEN 'Đồng'
+                    WHEN COALESCE(SUM(CASE 
+                        WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                        THEN t.amount 
+                        ELSE 0 
+                    END), 0) >= 310000 AND COALESCE(SUM(CASE 
+                        WHEN t.status = 'completed' AND (t.refund_status IS NULL OR t.refund_status != 'PROCESSED') 
+                        THEN t.amount 
+                        ELSE 0 
+                    END), 0) <= 500000 THEN 'Bạc'
                     ELSE 'Vàng'
                 END as rank
             FROM 
                 users u
             LEFT JOIN 
-                transactions t ON u.id = t.user_id AND t.status = 'completed'
+                transactions t ON u.id = t.user_id
             WHERE 
                 u.id = ? OR u.email = ?
             GROUP BY 
@@ -787,7 +812,7 @@ app.get("/api/payment-history", async (req, res) => {
         }
 
         db.query(
-            "SELECT transaction_id, amount, diamonds, status, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC",
+            "SELECT transaction_id, amount, diamonds, status, created_at, refund_status FROM transactions WHERE user_id = ? ORDER BY created_at DESC",
             [user_id],
             (err, results) => {
                 if (err) {
@@ -1526,11 +1551,25 @@ app.get("/api/top-surveys", getTopSurveys);
 app.use('/api', emailKeywordHandler);
 app.get("/admin/payment-management", adminPaymentManagementHandler);
 app.post("/admin/confirm-transaction", adminConfirmTransactionHandler);
+app.use('/api/request-refund', authenticateJWT);
+app.use('/api/verify-otp', authenticateJWT);
+
+app.use('/api/send-otp', authenticateJWT);
 // Routes cho payment
 app.post("/api/buy-diamonds", authenticateJWT, buyDiamondsHandler);
 app.post("/api/buy-diamonds-manual", authenticateJWT, buyDiamondsManualHandler);
 app.post("/api/update-transaction-status", authenticateJWT, updateTransactionStatusHandler);
 app.get("/vnpay-return", vnpayReturnHandler);
+app.post('/api/request-refund', requestRefundHandler);
+app.post('/api/verify-otp', verifyOtpHandler);
+app.post('/api/send-otp', sendOtpHandler);
+app.post('/admin/process-refund', processRefundHandler);
+app.get('/admin/refund', (req, res) => {
+    db.query("SELECT * FROM refunds", (err, results) => {
+        if (err) return res.status(500).send("Lỗi server");
+        res.render('adminRefund', { refunds: results });
+    });
+});
 
 // Khởi động server
 app.listen(port, () => {

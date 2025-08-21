@@ -14,7 +14,15 @@ const adminDashboardHandler = (req, res) => {
     const contactQuery = "SELECT COUNT(*) as contactCount FROM contacts";
     const contentQuery = "SELECT COUNT(*) as articleCount FROM contents";
     const userQuery = "SELECT COUNT(*) as userCount FROM users";
-    const serviceStatsQuery = "SELECT category, COUNT(*) as usage_count FROM history GROUP BY category ORDER BY usage_count DESC";
+    const serviceStatsQuery = `
+        SELECT 
+            category,
+            COUNT(*) as usage_count,
+            COUNT(CASE WHEN MONTH(created_at) = MONTH(CURRENT_DATE) THEN 1 ELSE NULL END) as currentValue,
+            COUNT(CASE WHEN MONTH(created_at) = MONTH(CURRENT_DATE - INTERVAL 1 MONTH) THEN 1 ELSE NULL END) as prevValue
+        FROM history
+        GROUP BY category
+    `;
 
     const queries = [
         new Promise((resolve, reject) => {
@@ -38,7 +46,16 @@ const adminDashboardHandler = (req, res) => {
         new Promise((resolve, reject) => {
             db.query(serviceStatsQuery, (err, result) => {
                 if (err) reject(err);
-                else resolve(result);
+                else {
+                    const serviceStats = result.map(row => ({
+                        category: row.category,
+                        usage_count: row.usage_count,
+                        currentValue: row.currentValue || 0, // Số lần sử dụng trong tháng hiện tại
+                        prevValue: row.prevValue || 0,      // Số lần sử dụng trong tháng trước
+                        changeValue: row.currentValue - row.prevValue // Số lượt tăng/giảm
+                    }));
+                    resolve(serviceStats);
+                }
             });
         }),
     ];
@@ -160,7 +177,6 @@ const adminHistoryHandler = (req, res) => {
     });
 };
 
-// Hàm xử lý GET /admin/users
 const adminUsersHandler = (req, res) => {
     db.query("SELECT * FROM users ORDER BY created_at DESC", (err, results) => {
         if (err) {
@@ -168,10 +184,53 @@ const adminUsersHandler = (req, res) => {
             return res.status(500).send("Lỗi server");
         }
 
-        res.render("users", {
-            title: "Quản lý Người dùng",
-            users: results,
-        });
+        // Tính tổng số người dùng
+        const totalUsers = results.length;
+
+        // Tính số người dùng mới trong tháng này
+        const currentMonth = new Date().getMonth(); // Tháng hiện tại (0-11), tháng 8 là 7
+        const currentYear = new Date().getFullYear(); // Năm hiện tại (2025)
+        const newUsersThisMonth = results.filter(user => {
+            const userDate = new Date(user.created_at);
+            return userDate.getMonth() === currentMonth && userDate.getFullYear() === currentYear;
+        }).length;
+
+        // Tính số người dùng của tháng trước bằng truy vấn SQL
+        const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        db.query(
+            "SELECT COUNT(*) as count FROM users WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?",
+            [prevMonth + 1, prevYear], // +1 vì MONTH() trong SQL bắt đầu từ 1
+            (err, prevMonthResults) => {
+                if (err) {
+                    console.error("Error fetching previous month data:", err.message, err.stack);
+                    return res.status(500).send("Lỗi server");
+                }
+                const prevNewUsersThisMonth = prevMonthResults[0].count || 0;
+
+                // Tính tổng số người dùng đến cuối tháng trước
+                db.query(
+                    "SELECT COUNT(*) as count FROM users WHERE created_at < ?",
+                    [new Date(currentYear, currentMonth, 1).toISOString().slice(0, 10)],
+                    (err, prevTotalResults) => {
+                        if (err) {
+                            console.error("Error fetching previous total users:", err.message, err.stack);
+                            return res.status(500).send("Lỗi server");
+                        }
+                        const prevTotalUsers = prevTotalResults[0].count || 0;
+
+                        res.render("users", {
+                            title: "Quản lý Người dùng",
+                            users: results,
+                            totalUsers: totalUsers,
+                            newUsersThisMonth: newUsersThisMonth,
+                            prevTotalUsers: prevTotalUsers,
+                            prevNewUsersThisMonth: prevNewUsersThisMonth
+                        });
+                    }
+                );
+            }
+        );
     });
 };
 
@@ -326,6 +385,19 @@ const adminRevenueHandler = (req, res) => {
                         .filter(t => new Date(t.created_at).getFullYear() === currentYear)
                         .reduce((sum, t) => sum + (t.amount || 0), 0);
 
+                    // Tính doanh thu tháng trước
+                    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+                    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+                    const prevMonthlyRevenue = transactions
+                        .filter(t => new Date(t.created_at).getMonth() + 1 === prevMonth && new Date(t.created_at).getFullYear() === prevYear)
+                        .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+                    // Tính phần trăm thay đổi so với tháng trước
+                    let monthlyRevenueChangePercent = 0;
+                    if (prevMonthlyRevenue > 0) {
+                        monthlyRevenueChangePercent = ((monthlyRevenue - prevMonthlyRevenue) / prevMonthlyRevenue * 100).toFixed(2);
+                    }
+
                     const selectedUserId = req.query.user_id;
                     let filteredTransactions = transactions;
                     let totalAmount = 0;
@@ -343,6 +415,8 @@ const adminRevenueHandler = (req, res) => {
                         currentYear,
                         monthlyRevenue,
                         yearlyRevenue,
+                        prevMonthlyRevenue,
+                        monthlyRevenueChangePercent,
                         transactions: filteredTransactions,
                         users: users,
                         selectedUserId: selectedUserId || "",
@@ -361,16 +435,26 @@ const adminRevenueHandler = (req, res) => {
 const adminRevenueMonthlyHandler = (req, res) => {
     try {
         const currentYear = new Date().getFullYear();
-        db.query("SELECT MONTH(created_at) as month, SUM(amount) as total FROM transactions WHERE status = 'completed' AND YEAR(created_at) = ? GROUP BY MONTH(created_at)", [currentYear], (err, results) => {
+        db.query("SELECT * FROM transactions WHERE YEAR(created_at) = ?", [currentYear], (err, transactions) => {
             if (err) {
-                console.error("Error fetching monthly revenue:", err);
+                console.error("Error fetching transactions for monthly revenue:", err);
                 return res.status(500).send("Có lỗi xảy ra khi lấy dữ liệu doanh thu theo tháng.");
             }
+
+            // Tính monthlyData từ transactions, loại trừ hoàn tiền
             const monthlyData = Array(12).fill(0).map((_, i) => {
-                const found = results.find(r => r.month === i + 1);
-                return found ? found.total : 0;
+                return transactions
+                    .filter(t => t.status === 'completed' && (!t.refund_status || t.refund_status !== 'PROCESSED')
+                        && new Date(t.created_at).getMonth() === i)
+                    .reduce((sum, t) => sum + t.amount, 0);
             });
-            res.render("revenue_monthly", { title: "Doanh thu Theo Tháng", monthlyData, currentYear });
+
+            res.render("revenue_monthly", {
+                title: "Doanh thu Theo Tháng",
+                monthlyData,
+                currentYear,
+                transactions // Truyền transactions để template sử dụng
+            });
         });
     } catch (error) {
         console.error("Error in /admin/revenue/monthly:", error.message, error.stack);
@@ -381,13 +465,28 @@ const adminRevenueMonthlyHandler = (req, res) => {
 // Hàm xử lý GET /admin/revenue/yearly
 const adminRevenueYearlyHandler = (req, res) => {
     try {
-        db.query("SELECT YEAR(created_at) as year, SUM(amount) as total FROM transactions WHERE status = 'completed' GROUP BY YEAR(created_at) ORDER BY YEAR(created_at) DESC", (err, results) => {
+        db.query("SELECT * FROM transactions", (err, transactions) => {
             if (err) {
-                console.error("Error fetching yearly revenue:", err);
+                console.error("Error fetching transactions for yearly revenue:", err);
                 return res.status(500).send("Có lỗi xảy ra khi lấy dữ liệu doanh thu theo năm.");
             }
-            const yearlyData = results.map(r => ({ year: r.year, total: r.total }));
-            res.render("revenue_yearly", { title: "Doanh thu Theo Năm", yearlyData });
+
+            // Tính yearlyData từ transactions, loại trừ hoàn tiền
+            const yearlyData = [];
+            const years = [...new Set(transactions.map(t => new Date(t.created_at).getFullYear()))];
+            years.forEach(year => {
+                const total = transactions
+                    .filter(t => t.status === 'completed' && (!t.refund_status || t.refund_status !== 'PROCESSED')
+                        && new Date(t.created_at).getFullYear() === year)
+                    .reduce((sum, t) => sum + t.amount, 0);
+                yearlyData.push({ year, total });
+            });
+
+            res.render("revenue_yearly", {
+                title: "Doanh thu Theo Năm",
+                yearlyData,
+                transactions // Truyền transactions để template sử dụng
+            });
         });
     } catch (error) {
         console.error("Error in /admin/revenue/yearly:", error.message, error.stack);
@@ -499,6 +598,8 @@ const adminConfirmTransactionHandler = (req, res) => {
     );
 };
 
+
+
 module.exports = {
     loginAdminGetHandler,
     adminDashboardHandler,
@@ -516,5 +617,5 @@ module.exports = {
     adminRevenueYearlyHandler,
     exportRevenueHandler,
     adminPaymentManagementHandler,
-    adminConfirmTransactionHandler
+    adminConfirmTransactionHandler,
 };

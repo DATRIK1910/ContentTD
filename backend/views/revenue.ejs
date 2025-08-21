@@ -24,6 +24,26 @@
             /* Màu xanh lá nổi bật */
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
+
+        .trend {
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .trend-up {
+            color: #10b981;
+            /* Xanh lá cho tăng */
+        }
+
+        .trend-down {
+            color: #dc2626;
+            /* Đỏ cho giảm */
+        }
+
+        .trend-neutral {
+            color: #a0aec0;
+            /* Xám cho không đổi */
+        }
     </style>
 </head>
 
@@ -83,6 +103,10 @@
                         class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
                         <i class="fas fa-credit-card mr-3"></i> Quản lý Thanh toán
                     </a>
+                    <a href="/admin/refund"
+                        class="flex items-center py-3 px-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg mb-2">
+                        <i class="fas fa-undo mr-3"></i> Quản lý Hoàn tiền
+                    </a>
                 </nav>
             </div>
             <div>
@@ -127,9 +151,16 @@
                                     </option>
                                     <% }); %>
                             </select>
-                            <p class="text-white mt-2">Tổng doanh thu: <span class="highlight">
-                                    <%= totalAmount.toLocaleString('vi-VN') %> VND
-                                </span></p>
+                            <% let adjustedTotalAmount=0; if (transactions && transactions.length> 0) {
+                                adjustedTotalAmount = transactions
+                                .filter(t => t.status === 'completed' && (!t.refund_status || t.refund_status !==
+                                'PROCESSED'))
+                                .reduce((sum, t) => sum + t.amount, 0);
+                                }
+                                %>
+                                <p class="text-white mt-2">Tổng doanh thu: <span class="highlight">
+                                        <%= adjustedTotalAmount.toLocaleString('vi-VN') %> VND
+                                    </span></p>
                         </div>
                         <!-- Nút xuất Excel ở góc phải -->
                         <a href="/admin/revenue/export"
@@ -144,16 +175,43 @@
                             <h3 class="text-lg font-semibold text-white">Doanh thu Tháng <%= currentMonth %>/<%=
                                         currentYear %>
                             </h3>
-                            <p class="text-3xl font-bold"><span class="highlight">
-                                    <%= monthlyRevenue.toLocaleString('vi-VN') %> VND
-                                </span></p>
+                            <% let adjustedMonthlyRevenue=0; if (transactions && transactions.length> 0) {
+                                adjustedMonthlyRevenue = transactions
+                                .filter(t => t.status === 'completed' && (!t.refund_status || t.refund_status !==
+                                'PROCESSED') && new Date(t.created_at).getMonth() === currentMonth - 1 && new
+                                Date(t.created_at).getFullYear() === currentYear)
+                                .reduce((sum, t) => sum + t.amount, 0);
+                                }
+                                %>
+                                <p class="text-3xl font-bold"><span class="highlight">
+                                        <%= adjustedMonthlyRevenue.toLocaleString('vi-VN') %> VND
+                                    </span></p>
+                                <div
+                                    class="trend <%= (monthlyRevenueChangePercent > 0) ? 'trend-up' : (monthlyRevenueChangePercent < 0) ? 'trend-down' : 'trend-neutral' %>">
+                                    <% if (prevMonthlyRevenue> 0) { %>
+                                        <%= (monthlyRevenueChangePercent> 0) ? '+' : '' %><%=
+                                                monthlyRevenueChangePercent %>
+                                                %
+                                                <%= (monthlyRevenueChangePercent> 0) ? '↑' :
+                                                    (monthlyRevenueChangePercent < 0) ? '↓' : '→' %> so với tháng trước
+                                                        <% } else { %>
+                                                            Không có dữ liệu tháng trước
+                                                            <% } %>
+                                </div>
                         </div>
                         <div class="bg-gray-700 p-4 rounded-lg shadow-md">
                             <h3 class="text-lg font-semibold text-white">Doanh thu Năm <%= currentYear %>
                             </h3>
-                            <p class="text-3xl font-bold"><span class="highlight">
-                                    <%= yearlyRevenue.toLocaleString('vi-VN') %> VND
-                                </span></p>
+                            <% let adjustedYearlyRevenue=0; if (transactions && transactions.length> 0) {
+                                adjustedYearlyRevenue = transactions
+                                .filter(t => t.status === 'completed' && (!t.refund_status || t.refund_status !==
+                                'PROCESSED') && new Date(t.created_at).getFullYear() === currentYear)
+                                .reduce((sum, t) => sum + t.amount, 0);
+                                }
+                                %>
+                                <p class="text-3xl font-bold"><span class="highlight">
+                                        <%= adjustedYearlyRevenue.toLocaleString('vi-VN') %> VND
+                                    </span></p>
                         </div>
                     </div>
 
